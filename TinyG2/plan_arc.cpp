@@ -254,16 +254,17 @@ static stat_t _compute_arc()
         ritorno(_compute_arc_offsets_from_radius()); // returns if error
     }
 
+    //++++++++
+    if (arc.gm.linenum == 846) {
+        printf("BREAK\n");
+    }
+
     // Calculate the theta (angle) of the current point (position)
     // arc.theta is starting point for theta (is also needed for calculating center point)
     arc.theta = _get_theta(-arc.offset[arc.plane_axis_0], -arc.offset[arc.plane_axis_1]);
     arc.theta_deg = arc.theta * 3.141592653589793/180.0;    //+++++
     if(isnan(arc.theta) == true) {
         return(STAT_ARC_SPECIFICATION_ERROR);
-    }
-
-    if (arc.gm.linenum == 846) {
-        printf("BREAK\n");
     }
 
     //// compute the angular travel ////
