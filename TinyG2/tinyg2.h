@@ -38,7 +38,7 @@
 /****** REVISIONS ******/
 
 #ifndef TINYG_FIRMWARE_BUILD
-#define TINYG_FIRMWARE_BUILD   		083.09 // Added TinyG2 v9k compile options (you can stop using v9i)
+#define TINYG_FIRMWARE_BUILD   		083.10 // Working on Issue #76
 #endif
 
 #define TINYG_FIRMWARE_VERSION		0.98						// firmware major version
