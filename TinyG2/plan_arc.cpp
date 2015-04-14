@@ -68,12 +68,6 @@ stat_t cm_arc_feed(const float target[], const float flags[],   // arc endpoints
 				   const float i, const float j, const float k, // raw arc offsets
 				   const float radius,                          // non-zero radius implies radius mode
 				   const uint8_t motion_mode)                   // defined motion mode
-/*
-stat_t cm_arc_feed(float target[], float flags[],   // arc endpoints
-                   float i, float j, float k,       // raw arc offsets
-                   float radius,                    // non-zero radius implies radius mode
-                   uint8_t motion_mode)             // defined motion mode
-*/
 {
 	//****** Set axis plane and trap arc specification errors ******
 
@@ -251,21 +245,17 @@ static stat_t _compute_arc()
     // A non-zero radius value indicates a radius arc
     // Compute IJK offset coordinates. These override any current IJK offsets
     if (fp_NOT_ZERO(arc.radius)) {
-        ritorno(_compute_arc_offsets_from_radius()); // returns if error
+        ritorno(_compute_arc_offsets_from_radius());        // returns if there's an error
     }
 
     //++++++++
-    if (arc.gm.linenum == 846) {
+    if (arc.gm.linenum >= 846) {
         printf("BREAK\n");
     }
 
     // Calculate the theta (angle) of the current point (position)
     // arc.theta is starting point for theta (is also needed for calculating center point)
     arc.theta = _get_theta(-arc.offset[arc.plane_axis_0], -arc.offset[arc.plane_axis_1]);
-    arc.theta_deg = arc.theta * 3.141592653589793/180.0;    //+++++
-    if(isnan(arc.theta) == true) {
-        return(STAT_ARC_SPECIFICATION_ERROR);
-    }
 
     //// compute the angular travel ////
     if (arc.full_circle) {                                  // if full circle you can skip the stuff in the else clause
@@ -274,18 +264,14 @@ static stat_t _compute_arc()
 
     } else {                                                // ... it's not a full circle
         arc.theta_end = _get_theta(                         // calculate the theta (angle) of the target endpoint
-            arc.gm.target[arc.plane_axis_0] - arc.offset[arc.plane_axis_0] - arc.position[arc.plane_axis_0],
-            arc.gm.target[arc.plane_axis_1] - arc.offset[arc.plane_axis_1] - arc.position[arc.plane_axis_1]);
+            arc.gm.target[arc.plane_axis_0] - arc.position[arc.plane_axis_0] - arc.offset[arc.plane_axis_0],
+            arc.gm.target[arc.plane_axis_1] - arc.position[arc.plane_axis_1] - arc.offset[arc.plane_axis_1]);
 
-        arc.theta_end_deg = arc.theta_end * 3.141592653589793/180.0;    //+++++
-        if(isnan(arc.theta_end) == true) {
-            return (STAT_ARC_SPECIFICATION_ERROR);
-        }
+        arc.theta_delta = arc.theta_end - arc.theta;
         if (arc.theta_end < arc.theta) {                    // make the difference positive so we have clockwise travel
             arc.theta_end += 2*M_PI;
         }
         arc.angular_travel = arc.theta_end - arc.theta;     // compute positive angular travel
-        arc.angular_travel_deg = arc.angular_travel * 3.141592653589793/180.0;    //+++++
         if (cm.gm.motion_mode == MOTION_MODE_CCW_ARC) {     // reverse travel direction if it's CCW arc
             arc.angular_travel -= 2*M_PI;
         }
@@ -299,9 +285,6 @@ static stat_t _compute_arc()
     if (cm.gm.select_plane == CANON_PLANE_XZ) {             // invert G18 XZ plane arcs for proper CW orientation
         arc.angular_travel *= -1;
     }
-    if (cm.gm.select_plane == CANON_PLANE_XZ) {				// Invert G18 XZ plane arcs for proper CW orientation
-        arc.angular_travel *= -1;
-    }
 
     // Find the radius, calculate travel in the depth axis of the helix
     // and compute the time it should take to perform the move
@@ -313,7 +296,6 @@ static stat_t _compute_arc()
 
     // length is the total mm of travel of the helix (or just a planar arc)
     arc.length = hypot(arc.angular_travel * arc.radius, fabs(arc.linear_travel));
-//    if (arc.length < cm.arc_segment_len) {
     if (arc.length < MIN_ARC_SEGMENT_LENGTH) {
         return (STAT_MINIMUM_LENGTH_MOVE);                  // arc is too short to draw
     }
@@ -321,7 +303,6 @@ static stat_t _compute_arc()
     _estimate_arc_time();	// get an estimate of execution time to inform segment calculation
 
     float segments_for_chordal_accuracy = arc.length / sqrt(4*cm.chordal_tolerance * (2 * arc.radius - cm.chordal_tolerance));
-//    float segments_for_minimum_distance = arc.length / cm.arc_segment_len;
     float segments_for_minimum_distance = arc.length / MIN_ARC_SEGMENT_LENGTH;
     float segments_for_minimum_time = arc.time * (MICROSECONDS_PER_MINUTE / MIN_ARC_SEGMENT_USEC);
 
@@ -330,7 +311,7 @@ static stat_t _compute_arc()
                               segments_for_minimum_time));
 
     arc.segments = max(arc.segments, (float)1.0);		//...but is at least 1 segment
-    arc.gm.move_time = arc.time / arc.segments;	// gcode state struct gets segment_time, not arc time
+    arc.gm.move_time = arc.time / arc.segments;	        // gcode state struct gets segment_time, not arc time
     arc.segment_count = (int32_t)arc.segments;
     arc.segment_theta = arc.angular_travel / arc.segments;
     arc.segment_linear_travel = arc.linear_travel / arc.segments;
@@ -491,7 +472,15 @@ static void _estimate_arc_time ()
 
 static float _get_theta(const float x, const float y)
 {
-	float theta = atan(x/fabs(y));
+    // Edge case: if Y is zero theta is +/- pi/2
+    if (fabs(y) < EPSILON) {    // It blowed up good! Real good!
+	    if (x>0) {
+            return(M_PI/2);
+        } else {
+            return(-M_PI/2);
+        }
+    }
+    float theta = atan(x/fabs(y));
 
 	if (y>0) {
 		return (theta);
