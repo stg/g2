@@ -40,7 +40,7 @@ typedef struct arArcSingleton {	// persistent planner and runtime variables
 //    float theta_end_deg;            // (could be a local scope var - not needed in struct)
     float theta_delta;
     float angular_travel;       // travel along the arc
-    float angular_travel_deg;       // travel along the arc
+//    float angular_travel_deg;       // travel along the arc
     float linear_travel;        // travel along linear axis of arc
     float planar_travel;        // (could be local scope)
     uint8_t full_circle;        // set true if full circle arcs specified

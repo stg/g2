@@ -245,7 +245,7 @@ static stat_t _compute_arc()
     // A non-zero radius value indicates a radius arc
     // Compute IJK offset coordinates. These override any current IJK offsets
     if (fp_NOT_ZERO(arc.radius)) {
-        ritorno(_compute_arc_offsets_from_radius()); // returns if error
+        ritorno(_compute_arc_offsets_from_radius());        // returns if there's an error
     }
 
     //++++++++
@@ -256,10 +256,6 @@ static stat_t _compute_arc()
     // Calculate the theta (angle) of the current point (position)
     // arc.theta is starting point for theta (is also needed for calculating center point)
     arc.theta = _get_theta(-arc.offset[arc.plane_axis_0], -arc.offset[arc.plane_axis_1]);
-//    arc.theta_deg = arc.theta * RADIAN;    //+++++
-//    if(isnan(arc.theta) == true) {    // took care of this in _get_theta()
-//        return(STAT_ARC_SPECIFICATION_ERROR);
-//    }
 
     //// compute the angular travel ////
     if (arc.full_circle) {                                  // if full circle you can skip the stuff in the else clause
@@ -267,44 +263,28 @@ static stat_t _compute_arc()
         if (fp_ZERO(arc.rotations)) arc.rotations = 1.0;    // handle the valid case of a full circle arc w/P=0
 
     } else {                                                // ... it's not a full circle
-//        arc.theta_end = _get_theta(                         // calculate the theta (angle) of the target endpoint
-//            arc.gm.target[arc.plane_axis_0] - arc.offset[arc.plane_axis_0] - arc.position[arc.plane_axis_0],
-//            arc.gm.target[arc.plane_axis_1] - arc.offset[arc.plane_axis_1] - arc.position[arc.plane_axis_1]);
         arc.theta_end = _get_theta(                         // calculate the theta (angle) of the target endpoint
             arc.gm.target[arc.plane_axis_0] - arc.position[arc.plane_axis_0] - arc.offset[arc.plane_axis_0],
             arc.gm.target[arc.plane_axis_1] - arc.position[arc.plane_axis_1] - arc.offset[arc.plane_axis_1]);
-//        arc.theta_end_deg = arc.theta_end * RADIAN;         //+++++
 
-//        if(isnan(arc.theta_end) == true) {        // took care of this in _get_theta()
-//            return (STAT_ARC_SPECIFICATION_ERROR);
-//        }
         arc.theta_delta = arc.theta_end - arc.theta;
         if (arc.theta_end < arc.theta) {                    // make the difference positive so we have clockwise travel
             arc.theta_end += 2*M_PI;
-//            arc.theta_end_deg = arc.theta_end * RADIAN;         //+++++
         }
         arc.angular_travel = arc.theta_end - arc.theta;     // compute positive angular travel
-//        arc.angular_travel_deg = arc.angular_travel * RADIAN; //+++++
         if (cm.gm.motion_mode == MOTION_MODE_CCW_ARC) {     // reverse travel direction if it's CCW arc
             arc.angular_travel -= 2*M_PI;
-//            arc.angular_travel_deg = arc.angular_travel * RADIAN;   //+++++
         }
     }
 
     if (cm.gm.motion_mode == MOTION_MODE_CW_ARC) {          // add in travel for rotations
         arc.angular_travel += 2*M_PI * arc.rotations;
-//        arc.angular_travel_deg = arc.angular_travel * RADIAN;   //+++++
     } else {
         arc.angular_travel -= 2*M_PI * arc.rotations;
-//        arc.angular_travel_deg = arc.angular_travel * RADIAN;   //+++++
     }
     if (cm.gm.select_plane == CANON_PLANE_XZ) {             // invert G18 XZ plane arcs for proper CW orientation
         arc.angular_travel *= -1;
-//        arc.angular_travel_deg = arc.angular_travel * RADIAN;   //+++++
     }
-//    if (cm.gm.select_plane == CANON_PLANE_XZ) {				// Invert G18 XZ plane arcs for proper CW orientation
-//        arc.angular_travel *= -1;
-//    }
 
     // Find the radius, calculate travel in the depth axis of the helix
     // and compute the time it should take to perform the move
@@ -492,11 +472,7 @@ static void _estimate_arc_time ()
 
 static float _get_theta(const float x, const float y)
 {
-    // Edge case 1: if X is zero theta is also zero
-    if (fp_ZERO(x)) {
-        return(0);
-    }
-    // Edge case 2: if Y is zero theta is +/- pi/2
+    // Edge case: if Y is zero theta is +/- pi/2
     if (fabs(y) < EPSILON) {    // It blowed up good! Real good!
 	    if (x>0) {
             return(M_PI/2);
@@ -504,7 +480,6 @@ static float _get_theta(const float x, const float y)
             return(-M_PI/2);
         }
     }
-
     float theta = atan(x/fabs(y));
 
 	if (y>0) {
