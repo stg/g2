@@ -190,8 +190,6 @@ stat_t cm_arc_feed(const float target[], const float flags[],   // arc endpoints
 	memcpy(&arc.gm, &cm.gm, sizeof(GCodeState_t));	// copy GCode context to arc singleton - some will be overwritten to run segments
 	copy_vector(arc.position, cm.gmx.position);		// set initial arc position from gcode model
 
-//	arc.radius = _to_millimeters(radius);			// set arc radius or zero
-
 	arc.offset[0] = _to_millimeters(i);				// copy offsets with conversion to canonical form (mm)
 	arc.offset[1] = _to_millimeters(j);
 	arc.offset[2] = _to_millimeters(k);
@@ -243,7 +241,6 @@ static stat_t _compute_arc()
     if (fp_NOT_ZERO(arc.radius)) {
         ritorno(_compute_arc_offsets_from_radius());        // returns if there's an error
     } else {                                                // compute start radius
-//        arc.radius = hypotf(arc.offset[arc.plane_axis_0], arc.offset[arc.plane_axis_1]);
         arc.radius = hypotf(-arc.offset[arc.plane_axis_0], -arc.offset[arc.plane_axis_1]);
     }
     
@@ -254,10 +251,6 @@ static stat_t _compute_arc()
     //  center by more than (.05 inch/.5 mm) OR ((.0005 inch/.005mm) AND .1% of radius)."
     
     // Compute end radius from the center of circle (offsets) to target endpoint 
-//    float r2 = hypotf(
-//        arc.gm.target[arc.plane_axis_0] - arc.position[arc.plane_axis_0] - arc.offset[arc.plane_axis_0],
-//        arc.gm.target[arc.plane_axis_1] - arc.position[arc.plane_axis_1] - arc.offset[arc.plane_axis_1]);
-
     float end_0 = arc.gm.target[arc.plane_axis_0] - arc.position[arc.plane_axis_0] - arc.offset[arc.plane_axis_0];
     float end_1 = arc.gm.target[arc.plane_axis_1] - arc.position[arc.plane_axis_1] - arc.offset[arc.plane_axis_1];
     float r2 = hypotf(end_0, end_1);
@@ -286,11 +279,7 @@ static stat_t _compute_arc()
 
     } else {                                                // ... it's not a full circle
 //++++ _get_theta style
-//        arc.theta_end_1 = _get_theta(                       // calculate the theta (angle) of the target endpoint
-//            arc.gm.target[arc.plane_axis_0] - arc.position[arc.plane_axis_0] - arc.offset[arc.plane_axis_0],
-//            arc.gm.target[arc.plane_axis_1] - arc.position[arc.plane_axis_1] - arc.offset[arc.plane_axis_1]);
         arc.theta_end_1 = _get_theta(end_0, end_1);           // calculate the theta (angle) of the target endpoint
-
         if (arc.theta_end_1 < arc.theta_1) {                // make the difference positive so we have clockwise travel
             arc.theta_end_1 += 2*M_PI;
         }
@@ -300,11 +289,7 @@ static stat_t _compute_arc()
         }
         
 //++++ atan2 style
-//        arc.theta_end = atan2(                              // calculate the theta (angle) of the target endpoint
-//            arc.gm.target[arc.plane_axis_0] - arc.position[arc.plane_axis_0] - arc.offset[arc.plane_axis_0],
-//            arc.gm.target[arc.plane_axis_1] - arc.position[arc.plane_axis_1] - arc.offset[arc.plane_axis_1]);
         arc.theta_end = atan2(end_0, end_1);                // calculate the theta (angle) of the target endpoint
-
         arc.angular_travel = arc.theta_end - arc.theta;     // compute angular travel
         if (cm.gm.motion_mode == MOTION_MODE_CCW_ARC) {     // correct for atan2 output quadrants
             if (arc.angular_travel >= 0) {
