@@ -237,7 +237,7 @@ typedef enum {
 } cmCoordSystem;
 #define COORD_SYSTEM_MAX G59		// set this manually to the last one
 
-typedef enum {			        // G Modal Group 13
+typedef enum {			            // G Modal Group 13
 	PATH_EXACT_PATH = 0,			// G61 - hits corners but does not stop if it does not need to.
 	PATH_EXACT_STOP,				// G61.1 - stops at all corners
 	PATH_CONTINUOUS					// G64 and typically the default mode
@@ -315,7 +315,7 @@ typedef enum {					    // axis modes (ordered: see _cm_get_feed_time())
  */
 typedef struct GCodeState {				// Gcode model state - used by model, planning and runtime
     uint32_t linenum;					// Gcode block line number
-    uint8_t motion_mode;				// Group1: G0, G1, G2, G3, G38.2, G80, G81,
+    uint8_t motion_mode;           // Group1: G0, G1, G2, G3, G38.2, G80, G81,
                                         // G82, G83 G84, G85, G86, G87, G88, G89
 
     float target[AXES]; 				// XYZABC where the move should go
@@ -327,13 +327,13 @@ typedef struct GCodeState {				// Gcode model state - used by model, planning an
 
     float parameter;					// P - parameter used for dwell time in seconds, G10 coord select...
 
-    uint8_t feed_rate_mode;             // See cmFeedRateMode for settings
-    uint8_t select_plane;               // G17,G18,G19 - values to set plane to
-    uint8_t units_mode;                 // G20,G21 - 0=inches (G20), 1 = mm (G21)
-    uint8_t coord_system;               // G54-G59 - select coordinate system 1-9
-    uint8_t path_control;               // G61... EXACT_PATH, EXACT_STOP, CONTINUOUS
-    uint8_t distance_mode;              // G91   0=use absolute coords(G90), 1=incremental movement
-	uint8_t absolute_override;			// G53 TRUE = move using machine coordinates - this block only (G53)
+    cmFeedRateMode feed_rate_mode;      // See cmFeedRateMode for settings
+    cmCanonicalPlane select_plane;      // G17,G18,G19 - values to set plane to
+    cmUnitsMode units_mode;             // G20,G21 - 0=inches (G20), 1 = mm (G21)
+    cmPathControl path_control;         // G61... EXACT_PATH, EXACT_STOP, CONTINUOUS
+    cmDistanceMode distance_mode;       // G91   0=use absolute coords(G90), 1=incremental movement
+	bool absolute_override;			    // G53 TRUE = move using machine coordinates - this block only (G53)
+    cmCoordSystem coord_system;         // G54-G59 - select coordinate system 1-9
 	uint8_t tool;				// G	// M6 tool change - moves "tool_select" to "tool"
 	uint8_t tool_select;		// G	// T value - T sets this value
 } GCodeState_t;
@@ -447,17 +447,12 @@ typedef struct cmSingleton {			// struct to manage cm globals and cycles
     bool limit_enable;                  // true to enable limit switches (disabled is same as override)
     bool safety_interlock_enable;       // true to enable safety interlock system
 
-	// hidden system settings
-//	float min_segment_len;				// line drawing resolution in mm
-//	float arc_segment_len;				// arc drawing resolution in mm
-//	float estd_segment_usec;			// approximate segment time in microseconds
-
 	// gcode power-on default settings - defaults are not the same as the gm state
-	uint8_t coord_system;				// G10 active coordinate system default
-	uint8_t select_plane;				// G17,G18,G19 reset default
-	uint8_t units_mode;					// G20,G21 reset default
-	uint8_t path_control;				// G61,G61.1,G64 reset default
-	uint8_t distance_mode;				// G90,G91 reset default
+	cmCoordSystem default_coord_system;     // G10 active coordinate system default
+	cmCanonicalPlane default_select_plane;  // G17,G18,G19 reset default
+	cmUnitsMode default_units_mode;         // G20,G21 reset default
+	cmPathControl default_path_control;     // G61,G61.1,G64 reset default
+	cmDistanceMode default_distance_mode;   // G90,G91 reset default
 
 	// coordinate systems and offsets
 	float offset[COORDS+1][AXES];		// persistent coordinate offsets: absolute (G53) + G54,G55,G56,G57,G58,G59

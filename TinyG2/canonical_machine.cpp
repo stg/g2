@@ -234,7 +234,7 @@ float cm_get_feed_rate(const GCodeState_t *gcode_state) { return gcode_state->fe
 
 void cm_set_motion_mode(GCodeState_t *gcode_state, const uint8_t motion_mode)
 {
-    gcode_state->motion_mode = motion_mode;
+    gcode_state->motion_mode = (cmMotionMode)motion_mode;
 }
 
 void cm_set_tool_number(GCodeState_t *gcode_state, const uint8_t tool)
@@ -577,11 +577,11 @@ void canonical_machine_init()
 void canonical_machine_reset()
 {
 	// set gcode defaults
-	cm_set_units_mode(cm.units_mode);
-	cm_set_coord_system(cm.coord_system);
-	cm_select_plane(cm.select_plane);
-	cm_set_path_control(cm.path_control);
-	cm_set_distance_mode(cm.distance_mode);
+	cm_set_units_mode(cm.default_units_mode);
+	cm_set_coord_system(cm.default_coord_system);
+	cm_select_plane(cm.default_select_plane);
+	cm_set_path_control(cm.default_path_control);
+	cm_set_distance_mode(cm.default_distance_mode);
 	cm_set_feed_rate_mode(UNITS_PER_MINUTE_MODE);// always the default
 
     // NOTE: Should unhome axes here
@@ -860,19 +860,19 @@ stat_t cm_panic(const stat_t status, const char *msg)
 
 stat_t cm_select_plane(const uint8_t plane)
 {
-	cm.gm.select_plane = plane;
+	cm.gm.select_plane = (cmCanonicalPlane)plane;
 	return (STAT_OK);
 }
 
 stat_t cm_set_units_mode(const uint8_t mode)
 {
-	cm.gm.units_mode = mode;		// 0 = inches, 1 = mm.
+	cm.gm.units_mode = (cmUnitsMode)mode;		    // 0 = inches, 1 = mm.
 	return(STAT_OK);
 }
 
 stat_t cm_set_distance_mode(const uint8_t mode)
 {
-	cm.gm.distance_mode = mode;		// 0 = absolute mode, 1 = incremental
+	cm.gm.distance_mode = (cmDistanceMode)mode;		// 0 = absolute mode, 1 = incremental
 	return (STAT_OK);
 }
 
@@ -924,7 +924,7 @@ stat_t cm_set_coord_offsets(const uint8_t coord_system,
  */
 stat_t cm_set_coord_system(const uint8_t coord_system)
 {
-	cm.gm.coord_system = coord_system;
+	cm.gm.coord_system = (cmCoordSystem)coord_system;
 
 	float value[AXES] = { (float)coord_system,0,0,0,0,0 };	// pass coordinate system in value[0] element
 	mp_queue_command(_exec_offset, value, value);			// second vector (flags) is not used, so fake it
@@ -1154,7 +1154,7 @@ stat_t cm_set_feed_rate(const float feed_rate)
 
 stat_t cm_set_feed_rate_mode(const uint8_t mode)
 {
-	cm.gm.feed_rate_mode = mode;
+	cm.gm.feed_rate_mode = (cmFeedRateMode)mode;
 	return (STAT_OK);
 }
 
@@ -1164,7 +1164,7 @@ stat_t cm_set_feed_rate_mode(const uint8_t mode)
 
 stat_t cm_set_path_control(const uint8_t mode)
 {
-	cm.gm.path_control = mode;
+	cm.gm.path_control = (cmPathControl)mode;
 	return (STAT_OK);
 }
 
@@ -1586,9 +1586,9 @@ static void _exec_program_finalize(float *value, float *flag)
 	if (((uint8_t)value[0]) == MACHINE_PROGRAM_END) {
 		cm_suspend_origin_offsets();					// G92.2 - as per NIST
 //		cm_reset_origin_offsets();						// G92.1 - alternative to above
-		cm_set_coord_system(cm.coord_system);			// reset to default coordinate system
-		cm_select_plane(cm.select_plane);				// reset to default arc plane
-		cm_set_distance_mode(cm.distance_mode);
+		cm_set_coord_system(cm.default_coord_system);   // reset to default coordinate system
+		cm_select_plane(cm.default_select_plane);       // reset to default arc plane
+		cm_set_distance_mode(cm.default_distance_mode);
 		cm_spindle_off_immediate();                     // M5
 		cm_coolant_off_immediate();                     // M9
 		cm_set_feed_rate_mode(UNITS_PER_MINUTE_MODE);	// G94
