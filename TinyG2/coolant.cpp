@@ -41,7 +41,7 @@ cmCoolantSingleton_t coolant;
 
 /**** Static functions ****/
 
-static void _exec_coolant_control(float *value, float *flags);
+static void _exec_coolant_control(float *value, bool *flags);
 
 /*
  * coolant_init()
@@ -68,7 +68,7 @@ void coolant_reset()
 void cm_coolant_off_immediate()
 {
     float value[] = { 0,0,0,0,0,0 };
-    float flags[] = { 1,1,0,0,0,0 };
+    bool flags[] = { 1,1,0,0,0,0 };
     _exec_coolant_control(value, flags);
 }
 
@@ -76,7 +76,7 @@ void cm_coolant_optional_pause(bool option)
 {
     if (option) {
         float value[] = { 0,0,0,0,0,0 };
-        float flags[] = { 0,0,0,0,0,0 };
+        bool flags[] = { 0,0,0,0,0,0 };
 
         if (coolant.flood_enable == COOLANT_ON) {
             coolant.flood_enable = COOLANT_PAUSE;   // mark as paused
@@ -93,6 +93,7 @@ void cm_coolant_optional_pause(bool option)
 void cm_coolant_resume()
 {
     float value[] = { 0,0,0,0,0,0 };
+    bool flags[] = { 0,0,0,0,0,0 };
 
     if (coolant.flood_enable == COOLANT_PAUSE) {
         coolant.flood_enable = COOLANT_ON;
@@ -102,7 +103,7 @@ void cm_coolant_resume()
         coolant.mist_enable = COOLANT_ON;
         value[COOLANT_MIST] = 1;
     }
-    _exec_coolant_control(value, value);
+    _exec_coolant_control(value, flags);
 }
 
 /*
@@ -118,7 +119,7 @@ void cm_coolant_resume()
 stat_t cm_flood_coolant_control(uint8_t flood_enable)
 {
     float value[] = { (float)flood_enable, 0,0,0,0,0 };
-    float flags[] = { 1,0,0,0,0,0 };
+    bool flags[] = { 1,0,0,0,0,0 };
     mp_queue_command(_exec_coolant_control, value, flags);
     return (STAT_OK);
 }
@@ -126,7 +127,7 @@ stat_t cm_flood_coolant_control(uint8_t flood_enable)
 stat_t cm_mist_coolant_control(uint8_t mist_enable)
 {
     float value[] = { 0, (float)mist_enable, 0,0,0,0 };
-    float flags[] = { 0,1,0,0,0,0 };
+    bool flags[] = { 0,1,0,0,0,0 };
     mp_queue_command(_exec_coolant_control, value, flags);
     return (STAT_OK);
 }
@@ -145,7 +146,7 @@ stat_t cm_mist_coolant_control(uint8_t mist_enable)
     #define _set_mist_enable_bit_lo() gpio_set_bit_off(COOLANT_BIT)
 #endif
 
-static void _exec_coolant_control(float *value, float *flags)
+static void _exec_coolant_control(float *value, bool *flags)
 {
     if (fp_TRUE(flags[COOLANT_FLOOD])) {
         coolant.flood_enable = (cmCoolantEnable)value[COOLANT_FLOOD];

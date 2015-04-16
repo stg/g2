@@ -411,6 +411,53 @@ typedef struct GCodeInput {				// Gcode model inputs - meaning depends on contex
 
 } GCodeInput_t;
 
+typedef struct GCodeFlags {				// Gcode model inputs - meaning depends on context
+    uint8_t next_action;				// handles G modal group 1 moves & non-modals
+    uint8_t motion_mode;				// Group1: G0, G1, G2, G3, G38.2, G80, G81,
+    // G82, G83 G84, G85, G86, G87, G88, G89
+    uint8_t program_flow;				// used only by the gcode_parser
+    uint32_t linenum;					// N word
+
+//    float target[AXES]; 				// XYZABC where the move should go
+    bool target[AXES]; 				    // XYZABC where the move should go
+
+    float feed_rate; 					// F - normalized to millimeters/minute
+    float feed_rate_override_factor;	// 1.0000 x F feed rate. Go up or down from there
+    float traverse_override_factor;		// 1.0000 x traverse rate. Go down from there
+    uint8_t	feed_rate_override_enable;	// TRUE = overrides enabled (M48), F=(M49)
+    uint8_t	traverse_override_enable;	// TRUE = traverse override enabled
+    uint8_t override_enables;			// enables for feed and spindle (GN/GF only)
+    uint8_t L_word;						// L word - used by G10s
+
+    uint8_t feed_rate_mode;	        	// See cmFeedRateMode for settings
+    uint8_t select_plane;	        	// G17,G18,G19 - values to set plane to
+    uint8_t units_mode;		    		// G20,G21 - 0=inches (G20), 1 = mm (G21)
+    uint8_t coord_system;	    		// G54-G59 - select coordinate system 1-9
+    uint8_t path_control;	    		// G61... EXACT_PATH, EXACT_STOP, CONTINUOUS
+    uint8_t distance_mode;	        	// G91   0=use absolute coords(G90), 1=incremental movement
+    uint8_t origin_offset_mode;     	// G92...TRUE=in origin offset mode
+    uint8_t absolute_override;			// G53 TRUE = move using machine coordinates - this block only (G53)
+    uint8_t tool;						// Tool after T and M6 (tool_select and tool_change)
+    uint8_t tool_select;				// T value - T sets this value
+    uint8_t tool_change;				// M6 tool change flag - moves "tool_select" to "tool"
+    uint8_t mist_coolant;				// TRUE = mist on (M7), FALSE = off (M9)
+    uint8_t flood_coolant;				// TRUE = flood on (M8), FALSE = off (M9)
+
+    uint8_t spindle_control;            // 0=OFF (M5), 1=CW (M3), 2=CCW (M4)
+    float spindle_speed;				// in RPM
+    float spindle_override_factor;		// 1.0000 x S spindle speed. Go up or down from there
+    uint8_t	spindle_override_enable;	// TRUE = override enabled
+
+    float parameter;					// P - parameter used for dwell time in seconds, G10 coord select...
+    float arc_radius;					// R - radius value in arc radius mode
+    float arc_offset[3];  				// IJK - used by arc commands
+
+    // unimplemented gcode parameters
+    //	float cutter_radius;				// D - cutter radius compensation (0 is off)
+    //	float cutter_length;				// H - cutter length compensation (0 is off)
+
+} GCodeFlags_t;
+
 /*****************************************************************************
  * CANONICAL MACHINE STRUCTURES
  */
@@ -493,10 +540,10 @@ typedef struct cmSingleton {			// struct to manage cm globals and cycles
 
 	/**** Model states ****/
 	GCodeState_t *am;                   // active Gcode model is maintained by state management
-	GCodeState_t  gm;					// core gcode model state
-	GCodeStateX_t gmx;					// extended gcode model state
-	GCodeInput_t  gn;					// gcode input values - transient
-	GCodeInput_t  gf;					// gcode input flags - transient
+	GCodeState_t  gm;                   // core gcode model state
+	GCodeStateX_t gmx;                  // extended gcode model state
+	GCodeInput_t  gn;                   // gcode input values - transient
+	GCodeFlags_t  gf;                   // gcode input flags - transient
 
 	magic_t magic_end;
 } cmSingleton_t;
@@ -554,7 +601,8 @@ float cm_get_work_position(const GCodeState_t *gcode_state, const uint8_t axis);
 void cm_update_model_position_from_runtime(void);
 void cm_finalize_move(void);
 stat_t cm_deferred_write_callback(void);
-void cm_set_model_target(const float target[], const float flag[]);
+//void cm_set_model_target(const float target[], const float flag[]);
+void cm_set_model_target(const float target[], const bool flag[]);
 stat_t cm_test_soft_limits(const float target[]);
 
 /*--- Canonical machining functions (loosely) defined by NIST [organized by NIST Gcode doc] ---*/
@@ -585,24 +633,30 @@ stat_t cm_set_units_mode(const uint8_t mode);                   // G20, G21
 stat_t cm_set_distance_mode(const uint8_t mode);                // G90, G91
 stat_t cm_set_coord_offsets(const uint8_t coord_system,         // G10
                             const uint8_t L_word,
-                            const float offset[], const float flag[]);
+//                            const float offset[], const float flag[]);
+                            const float offset[], const bool flag[]);
 
 void cm_set_position(const uint8_t axis, const float position); // set absolute position - single axis
-stat_t cm_set_absolute_origin(const float origin[], float flag[]);          // G28.3
+//stat_t cm_set_absolute_origin(const float origin[], float flag[]);          // G28.3
+stat_t cm_set_absolute_origin(const float origin[], bool flag[]);          // G28.3
 void cm_set_axis_origin(uint8_t axis, const float position);	            // G28.3 planner callback
 
 stat_t cm_set_coord_system(const uint8_t coord_system);                     // G54 - G59
-stat_t cm_set_origin_offsets(const float offset[], const float flag[]);     // G92
+//stat_t cm_set_origin_offsets(const float offset[], const float flag[]);     // G92
+stat_t cm_set_origin_offsets(const float offset[], const bool flag[]);     // G92
 stat_t cm_reset_origin_offsets(void);                                       // G92.1
 stat_t cm_suspend_origin_offsets(void);                                     // G92.2
 stat_t cm_resume_origin_offsets(void);                                      // G92.3
 
 // Free Space Motion (4.3.4)
-stat_t cm_straight_traverse(const float target[], const float flags[]);     // G0
+//stat_t cm_straight_traverse(const float target[], const float flags[]);     // G0
+stat_t cm_straight_traverse(const float target[], const bool flags[]);     // G0
 stat_t cm_set_g28_position(void);                                           // G28.1
-stat_t cm_goto_g28_position(const float target[], const float flags[]);     // G28
+//stat_t cm_goto_g28_position(const float target[], const float flags[]);     // G28
+stat_t cm_goto_g28_position(const float target[], const bool flags[]);     // G28
 stat_t cm_set_g30_position(void);                                           // G30.1
-stat_t cm_goto_g30_position(const float target[], const float flags[]);     // G30
+//stat_t cm_goto_g30_position(const float target[], const float flags[]);     // G30
+stat_t cm_goto_g30_position(const float target[], const bool flags[]);     // G30
 
 // Machining Attributes (4.3.5)
 stat_t cm_set_feed_rate(const float feed_rate);                             // F parameter
@@ -610,12 +664,15 @@ stat_t cm_set_feed_rate_mode(const uint8_t mode);                           // G
 stat_t cm_set_path_control(const uint8_t mode);                             // G61, G61.1, G64
 
 // Machining Functions (4.3.6)
-stat_t cm_straight_feed(const float target[], const float flags[], bool defer_planning = false); // G1
+//stat_t cm_straight_feed(const float target[], const float flags[], bool defer_planning = false); // G1
+stat_t cm_straight_feed(const float target[], const bool flags[], bool defer_planning = false); // G1
 stat_t cm_arc_feed(const float target[],                                    // G2, G3 
-                   const float flags[],
+//                   const float flags[],
+                   const bool flags[],
                    const float i, const float j, const float k,
                    const float radius, 
                    const uint8_t motion_mode);
+
 stat_t cm_dwell(const float seconds);                                       // G4, P parameter
 
 // Spindle Functions (4.3.7)
@@ -665,7 +722,8 @@ stat_t cm_homing_cycle_start_no_set(void);						// G28.4
 stat_t cm_homing_cycle_callback(void);							// G28.2/.4 main loop callback
 
 // Probe cycles
-stat_t cm_straight_probe(float target[], float flags[]);		// G38.2
+//stat_t cm_straight_probe(float target[], float flags[]);		// G38.2
+stat_t cm_straight_probe(float target[], bool flags[]);		// G38.2
 stat_t cm_probing_cycle_callback(void);							// G38.2 main loop callback
 
 // Jogging cycle

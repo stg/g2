@@ -32,7 +32,6 @@ arc_t arc;
 static stat_t _compute_arc(void);
 static void _compute_arc_offsets_from_radius(void);
 static void _estimate_arc_time(void);
-//static float _get_theta(const float x, const float y);
 static stat_t _test_arc_soft_limits(void);
 
 /*****************************************************************************
@@ -75,8 +74,9 @@ void cm_abort_arc()
 
 stat_t cm_arc_callback()
 {
-	if (arc.run_state == MOVE_OFF) { return (STAT_NOOP); }
-
+	if (arc.run_state == MOVE_OFF) { 
+        return (STAT_NOOP); 
+    }
 	if (mp_get_planner_buffers_available() < PLANNER_BUFFER_HEADROOM) {
         return (STAT_EAGAIN);
     }
@@ -101,10 +101,12 @@ stat_t cm_arc_callback()
  * approximated by generating a large number of tiny, linear segments.
  */
 
-stat_t cm_arc_feed(const float target[], const float flags[],   // arc endpoints
-				   const float i, const float j, const float k, // raw arc offsets
-				   const float radius,                          // non-zero radius implies radius mode
-				   const uint8_t motion_mode)                   // defined motion mode
+stat_t cm_arc_feed(const float target[],                        // arc endpoints 
+//                   const float flags[],
+                   const bool flags[],
+                   const float i, const float j, const float k, // raw arc offsets
+                   const float radius,                          // non-zero radius implies radius mode
+                   const uint8_t motion_mode)                   // defined motion mode
 {
 	//****** Set axis plane and trap arc specification errors ******
 

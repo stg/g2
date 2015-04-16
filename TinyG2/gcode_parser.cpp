@@ -251,16 +251,16 @@ static stat_t _validate_gcode_block()
 
 static stat_t _parse_gcode_block(char *buf)
 {
-	char *pstr = (char *)buf;		// persistent pointer into gcode block for parsing words
-  	char letter;					// parsed letter, eg.g. G or X or Y
-	float value = 0;				// value parsed from letter (e.g. 2 for G2)
-	stat_t status = STAT_OK;
+    char *pstr = (char *)buf;       // persistent pointer into gcode block for parsing words
+    char letter;                    // parsed letter, eg.g. G or X or Y
+    float value = 0;                // value parsed from letter (e.g. 2 for G2)
+    stat_t status = STAT_OK;
 
-	// set initial state for new move
-	memset(&gp, 0, sizeof(gp));						// clear all parser values
-	memset(&cm.gf, 0, sizeof(GCodeInput_t));		// clear all next-state flags
-	memset(&cm.gn, 0, sizeof(GCodeInput_t));		// clear all next-state values
-	cm.gn.motion_mode = cm_get_motion_mode(MODEL);	// get motion mode from previous block
+    // set initial state for new move
+    memset(&gp, 0, sizeof(gp));                     // clear all parser values
+    memset(&cm.gn, 0, sizeof(GCodeInput_t));        // clear all next-state values
+    memset(&cm.gf, 0, sizeof(GCodeFlags_t));        // clear all next-state flags
+    cm.gn.motion_mode = cm_get_motion_mode(MODEL);  // get motion mode from previous block
 
 	// extract commands and parameters
 	while((status = _get_next_gcode_word(&pstr, &letter, &value)) == STAT_OK) {
