@@ -411,51 +411,42 @@ typedef struct GCodeInput {				// Gcode model inputs - meaning depends on contex
 
 } GCodeInput_t;
 
-typedef struct GCodeFlags {				// Gcode model inputs - meaning depends on context
-    uint8_t next_action;				// handles G modal group 1 moves & non-modals
-    uint8_t motion_mode;				// Group1: G0, G1, G2, G3, G38.2, G80, G81,
-    // G82, G83 G84, G85, G86, G87, G88, G89
-    uint8_t program_flow;				// used only by the gcode_parser
-    uint32_t linenum;					// N word
+typedef struct GCodeFlags {             // Gcode model input flags
+    bool next_action;
+    bool motion_mode;
+    bool program_flow;
+    bool linenum;
+    bool target[AXES];
+    bool feed_rate;
+    bool feed_rate_override_factor;
+    bool traverse_override_factor;
+    bool feed_rate_override_enable;
+    bool traverse_override_enable;
+    bool override_enables;
+    bool L_word;
 
-//    float target[AXES]; 				// XYZABC where the move should go
-    bool target[AXES]; 				    // XYZABC where the move should go
+    bool feed_rate_mode;
+    bool select_plane;
+    bool units_mode;
+    bool coord_system;
+    bool path_control;
+    bool distance_mode;
+    bool origin_offset_mode;
+    bool absolute_override;
+    bool tool;
+    bool tool_select;
+    bool tool_change;
+    bool mist_coolant;
+    bool flood_coolant;
 
-    float feed_rate; 					// F - normalized to millimeters/minute
-    float feed_rate_override_factor;	// 1.0000 x F feed rate. Go up or down from there
-    float traverse_override_factor;		// 1.0000 x traverse rate. Go down from there
-    uint8_t	feed_rate_override_enable;	// TRUE = overrides enabled (M48), F=(M49)
-    uint8_t	traverse_override_enable;	// TRUE = traverse override enabled
-    uint8_t override_enables;			// enables for feed and spindle (GN/GF only)
-    uint8_t L_word;						// L word - used by G10s
+    bool spindle_control;
+    bool spindle_speed;
+    bool spindle_override_factor;
+    bool spindle_override_enable;
 
-    uint8_t feed_rate_mode;	        	// See cmFeedRateMode for settings
-    uint8_t select_plane;	        	// G17,G18,G19 - values to set plane to
-    uint8_t units_mode;		    		// G20,G21 - 0=inches (G20), 1 = mm (G21)
-    uint8_t coord_system;	    		// G54-G59 - select coordinate system 1-9
-    uint8_t path_control;	    		// G61... EXACT_PATH, EXACT_STOP, CONTINUOUS
-    uint8_t distance_mode;	        	// G91   0=use absolute coords(G90), 1=incremental movement
-    uint8_t origin_offset_mode;     	// G92...TRUE=in origin offset mode
-    uint8_t absolute_override;			// G53 TRUE = move using machine coordinates - this block only (G53)
-    uint8_t tool;						// Tool after T and M6 (tool_select and tool_change)
-    uint8_t tool_select;				// T value - T sets this value
-    uint8_t tool_change;				// M6 tool change flag - moves "tool_select" to "tool"
-    uint8_t mist_coolant;				// TRUE = mist on (M7), FALSE = off (M9)
-    uint8_t flood_coolant;				// TRUE = flood on (M8), FALSE = off (M9)
-
-    uint8_t spindle_control;            // 0=OFF (M5), 1=CW (M3), 2=CCW (M4)
-    float spindle_speed;				// in RPM
-    float spindle_override_factor;		// 1.0000 x S spindle speed. Go up or down from there
-    uint8_t	spindle_override_enable;	// TRUE = override enabled
-
-    float parameter;					// P - parameter used for dwell time in seconds, G10 coord select...
-    float arc_radius;					// R - radius value in arc radius mode
-    float arc_offset[3];  				// IJK - used by arc commands
-
-    // unimplemented gcode parameters
-    //	float cutter_radius;				// D - cutter radius compensation (0 is off)
-    //	float cutter_length;				// H - cutter length compensation (0 is off)
-
+    bool parameter;
+    bool arc_radius;
+    bool arc_offset[3];
 } GCodeFlags_t;
 
 /*****************************************************************************

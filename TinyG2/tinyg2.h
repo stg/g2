@@ -38,7 +38,7 @@
 /****** REVISIONS ******/
 
 #ifndef TINYG_FIRMWARE_BUILD
-#define TINYG_FIRMWARE_BUILD   		083.14 // Testing arcs; split gcode flags from input struct
+#define TINYG_FIRMWARE_BUILD   		083.15 // gcode flags
 #endif
 
 #define TINYG_FIRMWARE_VERSION		0.98						// firmware major version
