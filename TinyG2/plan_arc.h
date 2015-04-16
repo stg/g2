@@ -25,8 +25,9 @@
 #define MIN_ARC_SEGMENT_USEC    ((float)10000)      // minimum arc segment time
 
 // Arc radius tests. See http://linuxcnc.org/docs/html/gcode/gcode.html#sec:G2-G3-Arc
-#define MAX_ARC_RADIUS_ERROR    ((float)0.5)        // max allowable mm between start and end radius
-#define MIN_ARC_RADIUS_ERROR    ((float)0.005)      // min mm where 1% rule applies
+//#define ARC_RADIUS_ERROR_MAX    ((float)0.5)        // max allowable mm between start and end radius
+#define ARC_RADIUS_ERROR_MAX    ((float)1.0)        // max allowable mm between start and end radius
+#define ARC_RADIUS_ERROR_MIN    ((float)0.005)      // min mm where 1% rule applies
 #define ARC_RADIUS_TOLERANCE    ((float)0.001)      // 0.1% radius variance test
 
 typedef struct arArcSingleton {	// persistent planner and runtime variables
@@ -34,20 +35,15 @@ typedef struct arArcSingleton {	// persistent planner and runtime variables
     uint8_t run_state;          // runtime state machine sequence
 
     float position[AXES];       // accumulating runtime position
-    float offset[3];            // IJK offsets
+    float offset[3];            // arc IJK offsets
 
     float length;               // length of line or helix in mm
     float time;                 // total running time for arc (derived)
     float radius;               // Raw R value, or computed via offsets
-    float r2;                   // Radius to target endpoint - for testing
     float theta;                // total angle specified by arc
-    float theta_1;        // ++++++total angle specified by arc
-    float theta_end;            // (could be a local scope var - not needed in struct)
-    float theta_end_1;    // ++++++(could be a local scope var - not needed in struct)
-    float angular_travel;       // travel along the arc
-    float angular_travel_1;// +++++travel along the arc
-    float linear_travel;        // travel along linear axis of arc
-    float planar_travel;        // (could be local scope)
+    float angular_travel;       // travel along the arc in radians
+    float planar_travel;        // travel in arc plane in mm
+    float linear_travel;        // travel along linear axis of arc in mm
     bool full_circle;           // True if full circle arcs specified
     uint32_t rotations;         // Number of full rotations for full circles (P value)
 
