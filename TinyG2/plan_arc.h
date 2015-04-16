@@ -39,6 +39,7 @@ typedef struct arArcSingleton {	// persistent planner and runtime variables
     float length;               // length of line or helix in mm
     float time;                 // total running time for arc (derived)
     float radius;               // Raw R value, or computed via offsets
+    float r2;                   // Radius to target endpoint - for testing
     float theta;                // total angle specified by arc
     float theta_1;        // ++++++total angle specified by arc
     float theta_end;            // (could be a local scope var - not needed in struct)

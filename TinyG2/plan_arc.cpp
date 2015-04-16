@@ -32,7 +32,7 @@ arc_t arc;
 static stat_t _compute_arc(void);
 static stat_t _compute_arc_offsets_from_radius(void);
 static void _estimate_arc_time(void);
-static float _get_theta(const float x, const float y);
+//static float _get_theta(const float x, const float y);
 static stat_t _test_arc_soft_limits(void);
 
 /*****************************************************************************
@@ -62,6 +62,36 @@ void cm_arc_init()
 void cm_abort_arc()
 {
 	arc.run_state = MOVE_OFF;
+}
+
+/*
+ * _get_theta(float x, float y)
+ *
+ *	Find the angle in radians of deviance from the positive y axis
+ *	negative angles to the left of y-axis, positive to the right.
+ */
+
+static float _get_theta(const float x, const float y)
+{
+    // Edge case: if Y is zero theta is +/- pi/2
+    if (fabs(y) < EPSILON) {    // It blowed up good! Real good!
+	    if (x>0) {
+            return(M_PI/2);
+        } else {
+            return(-M_PI/2);
+        }
+    }
+    float theta = atan(x/fabs(y));
+
+	if (y>0) {
+		return (theta);
+	} else {
+		if (theta>0) {
+			return ( M_PI-theta);
+    	} else {
+			return (-M_PI-theta);
+		}
+	}
 }
 
 /*
@@ -253,8 +283,9 @@ static stat_t _compute_arc()
     // Compute end radius from the center of circle (offsets) to target endpoint 
     float end_0 = arc.gm.target[arc.plane_axis_0] - arc.position[arc.plane_axis_0] - arc.offset[arc.plane_axis_0];
     float end_1 = arc.gm.target[arc.plane_axis_1] - arc.position[arc.plane_axis_1] - arc.offset[arc.plane_axis_1];
-    float r2 = hypotf(end_0, end_1);
-    float radius_error = fabs(r2 - arc.radius);
+//    float r2 = hypotf(end_0, end_1);
+    arc.r2 = hypotf(end_0, end_1);
+    float radius_error = fabs(arc.r2 - arc.radius);
     
     if ((radius_error > MAX_ARC_RADIUS_ERROR) || 
         ((radius_error > MIN_ARC_RADIUS_ERROR) && 
@@ -279,6 +310,7 @@ static stat_t _compute_arc()
 
     } else {                                                // ... it's not a full circle
 //++++ _get_theta style
+/*
         arc.theta_end_1 = _get_theta(end_0, end_1);           // calculate the theta (angle) of the target endpoint
         if (arc.theta_end_1 < arc.theta_1) {                // make the difference positive so we have clockwise travel
             arc.theta_end_1 += 2*M_PI;
@@ -287,7 +319,7 @@ static stat_t _compute_arc()
         if (cm.gm.motion_mode == MOTION_MODE_CCW_ARC) {     // reverse travel direction if it's CCW arc
             arc.angular_travel_1 -= 2*M_PI;
         }
-        
+*/
 //++++ atan2 style
         arc.theta_end = atan2(end_0, end_1);                // calculate the theta (angle) of the target endpoint
         arc.angular_travel = arc.theta_end - arc.theta;     // compute angular travel
@@ -497,36 +529,6 @@ static void _estimate_arc_time ()
 	arc.time = max(arc.time, arc.planar_travel/cm.a[arc.plane_axis_1].feedrate_max);
 	if (fabs(arc.linear_travel) > 0) {
 		arc.time = max(arc.time, (float)fabs(arc.linear_travel/cm.a[arc.linear_axis].feedrate_max));
-	}
-}
-
-/*
- * _get_theta(float x, float y)
- *
- *	Find the angle in radians of deviance from the positive y axis
- *	negative angles to the left of y-axis, positive to the right.
- */
-
-static float _get_theta(const float x, const float y)
-{
-    // Edge case: if Y is zero theta is +/- pi/2
-    if (fabs(y) < EPSILON) {    // It blowed up good! Real good!
-	    if (x>0) {
-            return(M_PI/2);
-        } else {
-            return(-M_PI/2);
-        }
-    }
-    float theta = atan(x/fabs(y));
-
-	if (y>0) {
-		return (theta);
-	} else {
-		if (theta>0) {
-			return ( M_PI-theta);
-    	} else {
-			return (-M_PI-theta);
-		}
 	}
 }
 
