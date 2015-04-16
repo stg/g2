@@ -38,7 +38,7 @@
 /****** REVISIONS ******/
 
 #ifndef TINYG_FIRMWARE_BUILD
-#define TINYG_FIRMWARE_BUILD   		083.11 // Working on Issue #76
+#define TINYG_FIRMWARE_BUILD   		083.12 // Working on Issue #76 - testing arc radius checks
 #endif
 
 #define TINYG_FIRMWARE_VERSION		0.98						// firmware major version

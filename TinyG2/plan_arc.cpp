@@ -270,15 +270,20 @@ stat_t cm_arc_feed(const float target[], const float flags[],   // arc endpoints
 
 static stat_t _compute_arc()
 {
+//    if (arc.gm.linenum >= 846) {     //+++++ DIAGNOSTIC TRAP
+//        printf("BREAK\n");
+//    }
+
     // A non-zero radius value indicates a radius arc
     // Compute IJK offset coordinates. These override any current IJK offsets
     if (fp_NOT_ZERO(arc.radius)) {
         ritorno(_compute_arc_offsets_from_radius());        // returns if there's an error
     } else {                                                // compute start radius
-        arc.radius = hypotf(-arc.offset[arc.plane_axis_0], -arc.offset[arc.plane_axis_1]);
+//        arc.radius = hypotf(-arc.offset[arc.plane_axis_0], -arc.offset[arc.plane_axis_1]);
+        arc.radius = hypotf(arc.offset[arc.plane_axis_0], arc.offset[arc.plane_axis_1]);
     }
 
-    // Test arc specification for correctness according to LinuxCNC:
+    // Test arc specification for correctness according to:
     // http://linuxcnc.org/docs/html/gcode/gcode.html#sec:G2-G3-Arc
     // "It is an error if: when the arc is projected on the selected plane, the distance from
     //  the current point to the center differs from the distance from the end point to the
@@ -287,19 +292,14 @@ static stat_t _compute_arc()
     // Compute end radius from the center of circle (offsets) to target endpoint
     float end_0 = arc.gm.target[arc.plane_axis_0] - arc.position[arc.plane_axis_0] - arc.offset[arc.plane_axis_0];
     float end_1 = arc.gm.target[arc.plane_axis_1] - arc.position[arc.plane_axis_1] - arc.offset[arc.plane_axis_1];
-/*
+
 //    float r2 = hypotf(end_0, end_1);
-    arc.r2 = hypotf(end_0, end_1);
-    float radius_error = fabs(arc.r2 - arc.radius);
-    if ((radius_error > MAX_ARC_RADIUS_ERROR) ||
-        ((radius_error > MIN_ARC_RADIUS_ERROR) &&
-         (radius_error > arc.radius * ARC_RADIUS_TOLERANCE))) {
+//    arc.r2 = hypotf(end_0, end_1);
+//    float radius_error = fabs(arc.r2 - arc.radius);
+    float err = fabs(hypotf(end_0, end_1) - arc.radius);   // end radius - start radius
+    if ((err > ARC_RADIUS_ERROR_MAX) ||
+       ((err > ARC_RADIUS_ERROR_MIN) && (err > arc.radius * ARC_RADIUS_TOLERANCE))) {
         return (STAT_ARC_SPECIFICATION_ERROR);
-    }
-*/
-    //++++++++DIAGNOSTIC
-    if (arc.gm.linenum >= 846) {     // 846
-        printf("BREAK\n");
     }
 
     // Calculate the theta (angle) of the current point (position)

@@ -25,8 +25,9 @@
 #define MIN_ARC_SEGMENT_USEC    ((float)10000)      // minimum arc segment time
 
 // Arc radius tests. See http://linuxcnc.org/docs/html/gcode/gcode.html#sec:G2-G3-Arc
-#define MAX_ARC_RADIUS_ERROR    ((float)0.5)        // max allowable mm between start and end radius
-#define MIN_ARC_RADIUS_ERROR    ((float)0.005)      // min mm where 1% rule applies
+//#define ARC_RADIUS_ERROR_MAX    ((float)0.5)        // max allowable mm between start and end radius
+#define ARC_RADIUS_ERROR_MAX    ((float)1.0)        // max allowable mm between start and end radius
+#define ARC_RADIUS_ERROR_MIN    ((float)0.005)      // min mm where 1% rule applies
 #define ARC_RADIUS_TOLERANCE    ((float)0.001)      // 0.1% radius variance test
 
 typedef struct arArcSingleton {	// persistent planner and runtime variables
