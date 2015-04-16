@@ -624,29 +624,23 @@ stat_t cm_set_units_mode(const uint8_t mode);                   // G20, G21
 stat_t cm_set_distance_mode(const uint8_t mode);                // G90, G91
 stat_t cm_set_coord_offsets(const uint8_t coord_system,         // G10
                             const uint8_t L_word,
-//                            const float offset[], const float flag[]);
                             const float offset[], const bool flag[]);
 
 void cm_set_position(const uint8_t axis, const float position); // set absolute position - single axis
-//stat_t cm_set_absolute_origin(const float origin[], float flag[]);          // G28.3
 stat_t cm_set_absolute_origin(const float origin[], bool flag[]);          // G28.3
 void cm_set_axis_origin(uint8_t axis, const float position);	            // G28.3 planner callback
 
 stat_t cm_set_coord_system(const uint8_t coord_system);                     // G54 - G59
-//stat_t cm_set_origin_offsets(const float offset[], const float flag[]);     // G92
 stat_t cm_set_origin_offsets(const float offset[], const bool flag[]);     // G92
 stat_t cm_reset_origin_offsets(void);                                       // G92.1
 stat_t cm_suspend_origin_offsets(void);                                     // G92.2
 stat_t cm_resume_origin_offsets(void);                                      // G92.3
 
 // Free Space Motion (4.3.4)
-//stat_t cm_straight_traverse(const float target[], const float flags[]);     // G0
 stat_t cm_straight_traverse(const float target[], const bool flags[]);     // G0
 stat_t cm_set_g28_position(void);                                           // G28.1
-//stat_t cm_goto_g28_position(const float target[], const float flags[]);     // G28
 stat_t cm_goto_g28_position(const float target[], const bool flags[]);     // G28
 stat_t cm_set_g30_position(void);                                           // G30.1
-//stat_t cm_goto_g30_position(const float target[], const float flags[]);     // G30
 stat_t cm_goto_g30_position(const float target[], const bool flags[]);     // G30
 
 // Machining Attributes (4.3.5)
@@ -655,14 +649,11 @@ stat_t cm_set_feed_rate_mode(const uint8_t mode);                           // G
 stat_t cm_set_path_control(const uint8_t mode);                             // G61, G61.1, G64
 
 // Machining Functions (4.3.6)
-//stat_t cm_straight_feed(const float target[], const float flags[], bool defer_planning = false); // G1
 stat_t cm_straight_feed(const float target[], const bool flags[], bool defer_planning = false); // G1
-stat_t cm_arc_feed(const float target[],                                    // G2, G3 
-//                   const float flags[],
-                   const bool flags[],
-                   const float i, const float j, const float k,
-                   const float radius, 
-                   const uint8_t motion_mode);
+stat_t cm_arc_feed(const float target[], const bool target_f[],             // target endpoint
+                   const float offset[], const bool offset_f[],             // IJK offsets
+                   const float radius, const bool radius_f,                 // radius if radius mode                // non-zero radius implies radius mode
+                   const uint8_t motion_mode);                              // defined motion mode
 
 stat_t cm_dwell(const float seconds);                                       // G4, P parameter
 
@@ -713,7 +704,6 @@ stat_t cm_homing_cycle_start_no_set(void);						// G28.4
 stat_t cm_homing_cycle_callback(void);							// G28.2/.4 main loop callback
 
 // Probe cycles
-//stat_t cm_straight_probe(float target[], float flags[]);		// G38.2
 stat_t cm_straight_probe(float target[], bool flags[]);		// G38.2
 stat_t cm_probing_cycle_callback(void);							// G38.2 main loop callback
 

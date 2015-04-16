@@ -101,12 +101,10 @@ stat_t cm_arc_callback()
  * approximated by generating a large number of tiny, linear segments.
  */
 
-stat_t cm_arc_feed(const float target[],                        // arc endpoints 
-//                   const float flags[],
-                   const bool flags[],
-                   const float i, const float j, const float k, // raw arc offsets
-                   const float radius,                          // non-zero radius implies radius mode
-                   const uint8_t motion_mode)                   // defined motion mode
+stat_t cm_arc_feed(const float target[], const bool target_f[],     // target endpoint
+                   const float offset[], const bool offset_f[],     // IJK offsets
+                   const float radius, const bool radius_f,         // radius if radius mode                // non-zero radius implies radius mode
+                   const uint8_t motion_mode)                       // defined motion mode
 {
 	//****** Set axis plane and trap arc specification errors ******
 
@@ -117,20 +115,11 @@ stat_t cm_arc_feed(const float target[],                        // arc endpoints
 
     // test radius inputs
     arc.radius = _to_millimeters(cm.gn.arc_radius);             // set radius to internal format (mm)
-	bool radius_f = fp_NOT_ZERO(cm.gf.arc_radius);			    // set true if radius arc
 /*
     if ((radius_f) && (arc.radius < MIN_ARC_RADIUS)) {          // radius value must be + and > minimum radius
         return (STAT_ARC_RADIUS_OUT_OF_TOLERANCE);
     }
 */
-    // setup some flags
-	bool target_x = fp_NOT_ZERO(flags[AXIS_X]);	                // set true if X axis has been specified
-	bool target_y = fp_NOT_ZERO(flags[AXIS_Y]);
-	bool target_z = fp_NOT_ZERO(flags[AXIS_Z]);
-
-    bool offset_i = fp_NOT_ZERO(cm.gf.arc_offset[0]);	        // set true if offset I has been specified
-    bool offset_j = fp_NOT_ZERO(cm.gf.arc_offset[1]);           // J
-    bool offset_k = fp_NOT_ZERO(cm.gf.arc_offset[2]);           // K
 
 	// Set the arc plane for the current G17/G18/G19 setting and test arc specification
 	// Plane axis 0 and 1 are the arc plane, the linear axis is normal to the arc plane.
@@ -139,11 +128,11 @@ stat_t cm_arc_feed(const float target[],                        // arc endpoints
     	arc.plane_axis_1 = AXIS_Y;
     	arc.linear_axis  = AXIS_Z;
         if (radius_f) {
-            if (!(target_x || target_y)) {                      // must have at least one endpoint specified
+            if (!(target_f[AXIS_X] || target_f[AXIS_Y])) {      // must have at least one endpoint specified
         	    return (STAT_ARC_AXIS_MISSING_FOR_SELECTED_PLANE);
             }
         } else { // center format arc tests
-            if (offset_k) { // it's OK to be missing either or both i and j, but error if k is present
+            if (offset_f[OFS_K]) { // it's OK to be missing either or both i and j, but error if k is present
         	    return (STAT_ARC_SPECIFICATION_ERROR);
             }
         }
@@ -153,10 +142,10 @@ stat_t cm_arc_feed(const float target[],                        // arc endpoints
     	arc.plane_axis_1 = AXIS_Z;
     	arc.linear_axis  = AXIS_Y;
         if (radius_f) {
-            if (!(target_x || target_z))
+            if (!(target_f[AXIS_X] || target_f[AXIS_Z]))
                 return (STAT_ARC_AXIS_MISSING_FOR_SELECTED_PLANE);
         } else {
-            if (offset_j)
+            if (offset_f[OFS_J])
                 return (STAT_ARC_SPECIFICATION_ERROR);
         }
 
@@ -165,10 +154,10 @@ stat_t cm_arc_feed(const float target[],                        // arc endpoints
     	arc.plane_axis_1 = AXIS_Z;
     	arc.linear_axis  = AXIS_X;
         if (radius_f) {
-            if (!(target_y || target_z))
+            if (!(target_f[AXIS_Y] || target_f[AXIS_Z]))
                 return (STAT_ARC_AXIS_MISSING_FOR_SELECTED_PLANE);
         } else {
-            if (offset_i)
+            if (offset_f[OFS_I])
                 return (STAT_ARC_SPECIFICATION_ERROR);
         }
 	}
@@ -176,7 +165,7 @@ stat_t cm_arc_feed(const float target[],                        // arc endpoints
 	//****** Setup the arc ******
 
 	// set values in the Gcode model state & copy it (linenum was already captured)
-	cm_set_model_target(target, flags);
+	cm_set_model_target(target, target_f);
 
     // in radius mode it's an error for start == end
     if(radius_f) {
@@ -189,18 +178,18 @@ stat_t cm_arc_feed(const float target[],                        // arc endpoints
 
     // now get down to the rest of the work setting up the arc for execution
 	cm.gm.motion_mode = motion_mode;
-	cm_set_work_offsets(&cm.gm);					// capture the fully resolved offsets to gm
-	memcpy(&arc.gm, &cm.gm, sizeof(GCodeState_t));	// copy GCode context to arc singleton - some will be overwritten to run segments
-	copy_vector(arc.position, cm.gmx.position);		// set initial arc position from gcode model
+	cm_set_work_offsets(&cm.gm);                    // capture the fully resolved offsets to gm
+	memcpy(&arc.gm, &cm.gm, sizeof(GCodeState_t));  // copy GCode context to arc singleton - some will be overwritten to run segments
+	copy_vector(arc.position, cm.gmx.position);     // set initial arc position from gcode model
 
-	arc.offset[0] = _to_millimeters(i);				// copy offsets with conversion to canonical form (mm)
-	arc.offset[1] = _to_millimeters(j);
-	arc.offset[2] = _to_millimeters(k);
+	arc.offset[OFS_I] = _to_millimeters(offset[OFS_I]); // copy offsets with conversion to canonical form (mm)
+	arc.offset[OFS_J] = _to_millimeters(offset[OFS_J]);
+	arc.offset[OFS_K] = _to_millimeters(offset[OFS_K]);
 
 	arc.rotations = floor(fabs(cm.gn.parameter));   // P must be a positive integer - force it if not
 
 	// determine if this is a full circle arc. Evaluates true if no target is set
-	arc.full_circle = (fp_ZERO(flags[arc.plane_axis_0]) & fp_ZERO(flags[arc.plane_axis_1]));
+	arc.full_circle = (fp_ZERO(target_f[arc.plane_axis_0]) & fp_ZERO(target_f[arc.plane_axis_1]));
 
 	// compute arc runtime values
 	ritorno(_compute_arc());
@@ -272,7 +261,7 @@ static stat_t _compute_arc()
     //// compute the angular travel ////
     if (!arc.full_circle) {                                  // compute angular travel if not a full circle arc
         arc.angular_travel = atan2(end_0, end_1) - arc.theta;// angular travel = theta_end - theta_start
-        if (cm.gm.motion_mode == MOTION_MODE_CCW_ARC) {      // correct for atan2 output quadrants
+        if (arc.gm.motion_mode == MOTION_MODE_CCW_ARC) {      // correct for atan2 output quadrants
             if (arc.angular_travel >= 0) {
                 arc.angular_travel -= 2*M_PI;
             }
@@ -287,12 +276,12 @@ static stat_t _compute_arc()
             arc.rotations = 1.0;                            // handle the valid case of a full circle arc w/P=0
         }
     }
-    if (cm.gm.motion_mode == MOTION_MODE_CW_ARC) {          // add in travel for rotations
+    if (arc.gm.motion_mode == MOTION_MODE_CW_ARC) {         // add in travel for rotations
         arc.angular_travel += 2*M_PI * arc.rotations;
     } else {
         arc.angular_travel -= 2*M_PI * arc.rotations;
     }
-    if (cm.gm.select_plane == CANON_PLANE_XZ) {             // invert G18 XZ plane arcs for proper CW orientation
+    if (arc.gm.select_plane == CANON_PLANE_XZ) {            // invert G18 XZ plane arcs for proper CW orientation
         arc.angular_travel *= -1;
     }
 

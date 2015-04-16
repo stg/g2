@@ -38,7 +38,7 @@
 /****** REVISIONS ******/
 
 #ifndef TINYG_FIRMWARE_BUILD
-#define TINYG_FIRMWARE_BUILD   		083.15 // gcode flags
+#define TINYG_FIRMWARE_BUILD   		083.16 // changed cm_arc_feed call and some cleanup
 #endif
 
 #define TINYG_FIRMWARE_VERSION		0.98						// firmware major version
@@ -182,6 +182,12 @@ typedef enum {
     AXIS_V,                     // reserved
     AXIS_W                      // reserved
 } cmAxes;
+
+typedef enum {
+    OFS_I = 0,
+    OFS_J,
+    OFS_K
+} cmIJKOffsets;
 
 typedef enum {
     MOTOR_1 = 0,

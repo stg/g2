@@ -465,7 +465,6 @@ stat_t cm_deferred_write_callback()
 //        registers we moved this block into its own function so that we get a fresh stack push
 // ALDEN: This shows up in avr-gcc 4.7.0 and avr-libc 1.8.0
 
-//static float _calc_ABC(const uint8_t axis, const float target[], const float flag[])
 static float _calc_ABC(const uint8_t axis, const float target[], const bool flag[])
 {
 	if ((cm.a[axis].axis_mode == AXIS_STANDARD) || (cm.a[axis].axis_mode == AXIS_INHIBITED)) {
@@ -474,7 +473,6 @@ static float _calc_ABC(const uint8_t axis, const float target[], const bool flag
 	return(_to_millimeters(target[axis]) * 360 / (2 * M_PI * cm.a[axis].radius));
 }
 
-//void cm_set_model_target(const float target[], const float flag[])
 void cm_set_model_target(const float target[], const bool flag[])
 {
 	uint8_t axis;
@@ -821,6 +819,7 @@ stat_t cm_shutdown(const stat_t status, const char *msg)
 	rpt_exception(status, msg);	                // send exception report
     return (status);
 }
+
 /*
  * cm_panic() - enter panic state
  *
@@ -891,7 +890,6 @@ stat_t cm_set_distance_mode(const uint8_t mode)
 
 stat_t cm_set_coord_offsets(const uint8_t coord_system,
                             const uint8_t L_word,
-//                            const float offset[], const float flag[])
                             const float offset[], const bool flag[])
 {
 	if ((coord_system < G54) || (coord_system > COORD_SYSTEM_MAX)) {	// you can't set G53
@@ -929,8 +927,8 @@ stat_t cm_set_coord_system(const uint8_t coord_system)
 {
     cm.gm.coord_system = (cmCoordSystem)coord_system;
 
-	float value[AXES] = { (float)coord_system,0,0,0,0,0 };	// pass coordinate system in value[0] element
-    bool flags[AXES]  = { 1,0,0,0,0,0 };
+	float value[] = { (float)coord_system,0,0,0,0,0 };	    // pass coordinate system in value[0] element
+    bool flags[]  = { 1,0,0,0,0,0 };
 	mp_queue_command(_exec_offset, value, flags);			// second vector (flags) is not used, so fake it
 	return (STAT_OK);
 }
@@ -989,7 +987,6 @@ void cm_set_position(const uint8_t axis, const float position)
  *	as homed.
  */
 
-//stat_t cm_set_absolute_origin(const float origin[], float flag[])
 stat_t cm_set_absolute_origin(const float origin[], bool flag[])
 {
 	float value[AXES];
@@ -1027,7 +1024,7 @@ static void _exec_absolute_origin(float *value, bool *flag)
  * G92's behave according to NIST 3.5.18 & LinuxCNC G92
  * http://linuxcnc.org/docs/html/gcode/gcode.html#sec:G92-G92.1-G92.2-G92.3
  */
-//stat_t cm_set_origin_offsets(const float offset[], const float flag[])
+
 stat_t cm_set_origin_offsets(const float offset[], const bool flag[])
 {
 	// set offsets in the Gcode model extended context
@@ -1039,8 +1036,8 @@ stat_t cm_set_origin_offsets(const float offset[], const bool flag[])
 		}
 	}
 	// now pass the offset to the callback - setting the coordinate system also applies the offsets
-	float value[AXES] = { (float)cm.gm.coord_system,0,0,0,0,0 }; // pass coordinate system in value[0] element
-    bool flags[AXES]  = { 1,0,0,0,0,0 };
+	float value[] = { (float)cm.gm.coord_system,0,0,0,0,0 }; // pass coordinate system in value[0] element
+    bool flags[]  = { 1,0,0,0,0,0 };
 	mp_queue_command(_exec_offset, value, flags);				  // second vector is not used
 	return (STAT_OK);
 }
@@ -1051,8 +1048,8 @@ stat_t cm_reset_origin_offsets()
 	for (uint8_t axis = AXIS_X; axis < AXES; axis++) {
 		cm.gmx.origin_offset[axis] = 0;
 	}
-	float value[AXES] = { (float)cm.gm.coord_system,0,0,0,0,0 };
-    bool flags[AXES]  = { 1,0,0,0,0,0 };
+	float value[] = { (float)cm.gm.coord_system,0,0,0,0,0 };
+    bool flags[]  = { 1,0,0,0,0,0 };
 	mp_queue_command(_exec_offset, value, flags);
 	return (STAT_OK);
 }
@@ -1060,8 +1057,8 @@ stat_t cm_reset_origin_offsets()
 stat_t cm_suspend_origin_offsets()
 {
 	cm.gmx.origin_offset_enable = false;
-	float value[AXES] = { (float)cm.gm.coord_system,0,0,0,0,0 };
-    bool flags[AXES]  = { 1,0,0,0,0,0 };
+	float value[] = { (float)cm.gm.coord_system,0,0,0,0,0 };
+    bool flags[]  = { 1,0,0,0,0,0 };
 	mp_queue_command(_exec_offset, value, flags);
 	return (STAT_OK);
 }
@@ -1069,8 +1066,8 @@ stat_t cm_suspend_origin_offsets()
 stat_t cm_resume_origin_offsets()
 {
 	cm.gmx.origin_offset_enable = true;
-	float value[AXES] = { (float)cm.gm.coord_system,0,0,0,0,0 };
-    bool flags[AXES]  = { 1,0,0,0,0,0 };
+	float value[] = { (float)cm.gm.coord_system,0,0,0,0,0 };
+    bool flags[]  = { 1,0,0,0,0,0 };
 	mp_queue_command(_exec_offset, value, flags);
 	return (STAT_OK);
 }
@@ -1082,7 +1079,6 @@ stat_t cm_resume_origin_offsets()
  * cm_straight_traverse() - G0 linear rapid
  */
 
-//stat_t cm_straight_traverse(const float target[], const float flags[])
 stat_t cm_straight_traverse(const float target[], const bool flags[])
 {
 	cm.gm.motion_mode = MOTION_MODE_STRAIGHT_TRAVERSE;
@@ -1112,13 +1108,11 @@ stat_t cm_set_g28_position(void)
 	return (STAT_OK);
 }
 
-//stat_t cm_goto_g28_position(const float target[], const float flags[])
 stat_t cm_goto_g28_position(const float target[], const bool flags[])
 {
 	cm_set_absolute_override(MODEL, true);
 	cm_straight_traverse(target, flags);				// move through intermediate point, or skip
 	while (mp_get_planner_buffers_available() == 0);	// make sure you have an available buffer
-//	float f[] = {1,1,1,1,1,1};
 	bool f[] = {1,1,1,1,1,1};
 	return (cm_straight_traverse(cm.gmx.g28_position, f));// execute actual stored move
 }
@@ -1129,13 +1123,11 @@ stat_t cm_set_g30_position(void)
 	return (STAT_OK);
 }
 
-//stat_t cm_goto_g30_position(const float target[], const float flags[])
 stat_t cm_goto_g30_position(const float target[], const bool flags[])
 {
 	cm_set_absolute_override(MODEL, true);
 	cm_straight_traverse(target, flags);				// move through intermediate point, or skip
 	while (mp_get_planner_buffers_available() == 0);	// make sure you have an available buffer
-//	float f[] = {1,1,1,1,1,1};
 	bool f[] = {1,1,1,1,1,1};
 	return (cm_straight_traverse(cm.gmx.g30_position, f));// execute actual stored move
 }
@@ -1203,7 +1195,7 @@ stat_t cm_dwell(const float seconds)
 /*
  * cm_straight_feed() - G1
  */
-//stat_t cm_straight_feed(const float target[], const float flags[], bool defer_planning/* = false*/)
+
 stat_t cm_straight_feed(const float target[], const bool flags[], bool defer_planning/* = false*/)
 {
 	// trap zero feed rate condition
@@ -1248,8 +1240,8 @@ stat_t cm_straight_feed(const float target[], const bool flags[], bool defer_pla
  */
 stat_t cm_select_tool(const uint8_t tool_select)
 {
-	float value[AXES] = { (float)tool_select, 0,0,0,0,0 };
-    bool flags[AXES]  = { 1,0,0,0,0,0 };
+	float value[] = { (float)tool_select, 0,0,0,0,0 };
+    bool flags[]  = { 1,0,0,0,0,0 };
 	mp_queue_command(_exec_select_tool, value, flags);
 	return (STAT_OK);
 }
@@ -1261,8 +1253,8 @@ static void _exec_select_tool(float *value, bool *flag)
 
 stat_t cm_change_tool(const uint8_t tool_change)
 {
-	float value[AXES] = { (float)cm.gm.tool_select,0,0,0,0,0 };
-    bool flags[AXES]  = { 1,0,0,0,0,0 };
+	float value[] = { (float)cm.gm.tool_select,0,0,0,0,0 };
+    bool flags[]  = { 1,0,0,0,0,0 };
 	mp_queue_command(_exec_change_tool, value, flags);
 	return (STAT_OK);
 }
@@ -1627,8 +1619,8 @@ void cm_cycle_start()
 void cm_cycle_end()
 {
 	if(cm.cycle_state == CYCLE_MACHINING) {
-		float value[AXES] = { (float)MACHINE_PROGRAM_STOP, 0,0,0,0,0 };
-        bool flags[AXES]  = { 1,0,0,0,0,0 };
+		float value[] = { (float)MACHINE_PROGRAM_STOP, 0,0,0,0,0 };
+        bool flags[]  = { 1,0,0,0,0,0 };
 		_exec_program_finalize(value, flags);
 	}
 }
@@ -1636,29 +1628,29 @@ void cm_cycle_end()
 void cm_canned_cycle_end()
 {
 	cm.cycle_state = CYCLE_OFF;
-	float value[AXES] = { (float)MACHINE_PROGRAM_STOP, 0,0,0,0,0 };
-    bool flags[AXES]  = { 1,0,0,0,0,0 };
+	float value[] = { (float)MACHINE_PROGRAM_STOP, 0,0,0,0,0 };
+    bool flags[]  = { 1,0,0,0,0,0 };
 	_exec_program_finalize(value, flags);
 }
 
 void cm_program_stop()
 {
-	float value[AXES] = { (float)MACHINE_PROGRAM_STOP, 0,0,0,0,0 };
-    bool flags[AXES]  = { 1,0,0,0,0,0 };
+	float value[] = { (float)MACHINE_PROGRAM_STOP, 0,0,0,0,0 };
+    bool flags[]  = { 1,0,0,0,0,0 };
 	mp_queue_command(_exec_program_finalize, value, flags);
 }
 
 void cm_optional_program_stop()
 {
-	float value[AXES] = { (float)MACHINE_PROGRAM_STOP, 0,0,0,0,0 };
-    bool flags[AXES]  = { 1,0,0,0,0,0 };
+	float value[] = { (float)MACHINE_PROGRAM_STOP, 0,0,0,0,0 };
+    bool flags[]  = { 1,0,0,0,0,0 };
 	mp_queue_command(_exec_program_finalize, value, flags);
 }
 
 void cm_program_end()
 {
-	float value[AXES] = { (float)MACHINE_PROGRAM_END, 0,0,0,0,0 };
-    bool flags[AXES]  = { 1,0,0,0,0,0 };
+	float value[] = { (float)MACHINE_PROGRAM_END, 0,0,0,0,0 };
+    bool flags[]  = { 1,0,0,0,0,0 };
 	mp_queue_command(_exec_program_finalize, value, flags);
 }
 
