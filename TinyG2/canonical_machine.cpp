@@ -480,7 +480,8 @@ void cm_set_model_target(const float target[], const bool flag[])
 
 	// process XYZABC for lower modes
 	for (axis=AXIS_X; axis<=AXIS_Z; axis++) {
-		if ((fp_FALSE(flag[axis])) || (cm.a[axis].axis_mode == AXIS_DISABLED)) {
+//		if ((fp_FALSE(flag[axis])) || (cm.a[axis].axis_mode == AXIS_DISABLED)) {
+		if (!flag[axis] || cm.a[axis].axis_mode == AXIS_DISABLED) {
 			continue;		// skip axis if not flagged for update or its disabled
 		} else if ((cm.a[axis].axis_mode == AXIS_STANDARD) || (cm.a[axis].axis_mode == AXIS_INHIBITED)) {
 			if (cm.gm.distance_mode == ABSOLUTE_MODE) {
@@ -492,7 +493,8 @@ void cm_set_model_target(const float target[], const bool flag[])
 	}
 	// FYI: The ABC loop below relies on the XYZ loop having been run first
 	for (axis=AXIS_A; axis<=AXIS_C; axis++) {
-		if ((fp_FALSE(flag[axis])) || (cm.a[axis].axis_mode == AXIS_DISABLED)) {
+//		if ((fp_FALSE(flag[axis])) || (cm.a[axis].axis_mode == AXIS_DISABLED)) {
+		if (!flag[axis] || cm.a[axis].axis_mode == AXIS_DISABLED) {
 			continue;		// skip axis if not flagged for update or its disabled
 		} else {
 			tmp = _calc_ABC(axis, target, flag);
@@ -895,7 +897,8 @@ stat_t cm_set_coord_offsets(const uint8_t coord_system,
 	if ((coord_system < G54) || (coord_system > COORD_SYSTEM_MAX)) {	// you can't set G53
 		return (STAT_P_WORD_IS_INVALID);
 	}
-    if (fp_FALSE(cm.gf.L_word)) {
+//    if (fp_FALSE(cm.gf.L_word)) {
+    if (!cm.gf.L_word) {
 		return (STAT_L_WORD_IS_MISSING);
     }
     if ((L_word != 2) && (L_word != 20)) {
@@ -904,7 +907,8 @@ stat_t cm_set_coord_offsets(const uint8_t coord_system,
     cm.gmx.L_word = L_word;
 
 	for (uint8_t axis = AXIS_X; axis < AXES; axis++) {
-		if (fp_TRUE(flag[axis])) {
+//		if (fp_TRUE(flag[axis])) {
+		if (flag[axis]) {
             if (L_word == 2) {
     			cm.offset[coord_system][axis] = _to_millimeters(offset[axis]);
             } else {
@@ -992,7 +996,8 @@ stat_t cm_set_absolute_origin(const float origin[], bool flag[])
 	float value[AXES];
 
 	for (uint8_t axis = AXIS_X; axis < AXES; axis++) {
-		if (fp_TRUE(flag[axis])) {
+//		if (fp_TRUE(flag[axis])) {
+		if (flag[axis]) {
 // REMOVED  value[axis] = cm.offset[cm.gm.coord_system][axis] + _to_millimeters(origin[axis]);	// G2 Issue #26
 			value[axis] = _to_millimeters(origin[axis]);
 			cm.gmx.position[axis] = value[axis];		// set model position
@@ -1007,7 +1012,8 @@ stat_t cm_set_absolute_origin(const float origin[], bool flag[])
 static void _exec_absolute_origin(float *value, bool *flag)
 {
 	for (uint8_t axis = AXIS_X; axis < AXES; axis++) {
-		if (fp_TRUE(flag[axis])) {
+//		if (fp_TRUE(flag[axis])) {
+		if (flag[axis]) {
 			mp_set_runtime_position(axis, value[axis]);
 			cm.homed[axis] = true;	// G28.3 is not considered homed until you get here
 		}
@@ -1030,7 +1036,8 @@ stat_t cm_set_origin_offsets(const float offset[], const bool flag[])
 	// set offsets in the Gcode model extended context
 	cm.gmx.origin_offset_enable = true;
 	for (uint8_t axis = AXIS_X; axis < AXES; axis++) {
-		if (fp_TRUE(flag[axis])) {
+//		if (fp_TRUE(flag[axis])) {
+		if (flag[axis]) {
 			cm.gmx.origin_offset[axis] = cm.gmx.position[axis] -
 									  cm.offset[cm.gm.coord_system][axis] - _to_millimeters(offset[axis]);
 		}
@@ -1303,7 +1310,8 @@ stat_t cm_override_enables(uint8_t flag)			// M48, M49
 
 stat_t cm_feed_rate_override_enable(uint8_t flag)	// M50
 {
-	if (fp_TRUE(cm.gf.parameter) && fp_ZERO(cm.gn.parameter)) {
+//	if (fp_TRUE(cm.gf.parameter) && fp_ZERO(cm.gn.parameter)) {
+	if (cm.gf.parameter && fp_ZERO(cm.gn.parameter)) {
 		cm.gmx.feed_rate_override_enable = false;
 	} else {
 		cm.gmx.feed_rate_override_enable = true;
@@ -1321,7 +1329,8 @@ stat_t cm_feed_rate_override_factor(uint8_t flag)	// M50.1
 
 stat_t cm_traverse_override_enable(uint8_t flag)	// M50.2
 {
-	if (fp_TRUE(cm.gf.parameter) && fp_ZERO(cm.gn.parameter)) {
+//	if (fp_TRUE(cm.gf.parameter) && fp_ZERO(cm.gn.parameter)) {
+	if (cm.gf.parameter && fp_ZERO(cm.gn.parameter)) {
 		cm.gmx.traverse_override_enable = false;
 	} else {
 		cm.gmx.traverse_override_enable = true;
@@ -2075,7 +2084,9 @@ stat_t cm_run_qf(nvObj_t *nv)
 
 stat_t cm_run_home(nvObj_t *nv)
 {
-	if (fp_TRUE(nv->value)) { cm_homing_cycle_start();}
+	if (fp_TRUE(nv->value)) { 
+        cm_homing_cycle_start();
+    }
 	return (STAT_OK);
 }
 

@@ -92,16 +92,19 @@ void cm_coolant_optional_pause(bool option)
 
 void cm_coolant_resume()
 {
+//    float value[] = { 1,1,0,0,0,0 };  // ++++ Will this work? No need to set 'value' below
     float value[] = { 0,0,0,0,0,0 };
     bool flags[] = { 0,0,0,0,0,0 };
 
     if (coolant.flood_enable == COOLANT_PAUSE) {
         coolant.flood_enable = COOLANT_ON;
         value[COOLANT_FLOOD] = 1;
+        flags[COOLANT_FLOOD] = true;
     }
     if (coolant.mist_enable == COOLANT_PAUSE) {
         coolant.mist_enable = COOLANT_ON;
         value[COOLANT_MIST] = 1;
+        flags[COOLANT_MIST] = true;
     }
     _exec_coolant_control(value, flags);
 }
@@ -148,7 +151,8 @@ stat_t cm_mist_coolant_control(uint8_t mist_enable)
 
 static void _exec_coolant_control(float *value, bool *flags)
 {
-    if (fp_TRUE(flags[COOLANT_FLOOD])) {
+//    if (fp_TRUE(flags[COOLANT_FLOOD])) {
+    if (flags[COOLANT_FLOOD]) {
         coolant.flood_enable = (cmCoolantEnable)value[COOLANT_FLOOD];
         if (!((coolant.flood_enable & 0x01) ^ coolant.flood_polarity)) {    // inverted XOR
             _set_flood_enable_bit_hi();
@@ -156,7 +160,8 @@ static void _exec_coolant_control(float *value, bool *flags)
             _set_flood_enable_bit_lo();
         }
     }
-    if (fp_TRUE(flags[COOLANT_MIST])) {
+//    if (fp_TRUE(flags[COOLANT_MIST])) {
+    if (flags[COOLANT_MIST]) {
         coolant.mist_enable = (cmCoolantEnable)value[COOLANT_MIST];
         if (!((coolant.mist_enable & 0x01) ^ coolant.mist_polarity)) {
             _set_mist_enable_bit_hi();

@@ -29,7 +29,6 @@
 arc_t arc;
 
 // Local functions
-//static stat_t _compute_arc(void);
 static stat_t _compute_arc(const bool radius_f);
 static void _compute_arc_offsets_from_radius(void);
 static void _estimate_arc_time(void);
@@ -115,12 +114,12 @@ stat_t cm_arc_feed(const float target[], const bool target_f[],     // target en
 	}
 
     // test radius inputs
-    arc.radius = _to_millimeters(cm.gn.arc_radius);             // set radius to internal format (mm)
-/*
-    if ((radius_f) && (arc.radius < MIN_ARC_RADIUS)) {          // radius value must be + and > minimum radius
-        return (STAT_ARC_RADIUS_OUT_OF_TOLERANCE);
+    if (radius_f) {
+        arc.radius = _to_millimeters(radius);           // set radius to internal format (mm)
+        if (arc.radius < MIN_ARC_RADIUS) {              // radius value must be + and > minimum radius
+            return (STAT_ARC_RADIUS_OUT_OF_TOLERANCE);
+        }        
     }
-*/
 
 	// Set the arc plane for the current G17/G18/G19 setting and test arc specification
 	// Plane axis 0 and 1 are the arc plane, the linear axis is normal to the arc plane.
