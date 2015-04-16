@@ -34,20 +34,20 @@ typedef struct arArcSingleton {	// persistent planner and runtime variables
     uint8_t run_state;          // runtime state machine sequence
 
     float position[AXES];       // accumulating runtime position
-    float offset[3];            // IJK offsets
+    float offset[3];            // arc IJK offsets
 
     float length;               // length of line or helix in mm
     float time;                 // total running time for arc (derived)
     float radius;               // Raw R value, or computed via offsets
-    float r2;                   // Radius to target endpoint - for testing
+    float r2;      //++++ make local
     float theta;                // total angle specified by arc
-    float theta_1;        // ++++++total angle specified by arc
-    float theta_end;            // (could be a local scope var - not needed in struct)
-    float theta_end_1;    // ++++++(could be a local scope var - not needed in struct)
+//    float theta_1;
+    float theta_end;  // +++ make local
+//    float theta_end_1;
     float angular_travel;       // travel along the arc
-    float angular_travel_1;// +++++travel along the arc
+//    float angular_travel_1;
+    float planar_travel;  //+++ make local
     float linear_travel;        // travel along linear axis of arc
-    float planar_travel;        // (could be local scope)
     bool full_circle;           // True if full circle arcs specified
     uint32_t rotations;         // Number of full rotations for full circles (P value)
 
