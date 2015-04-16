@@ -287,10 +287,10 @@ static stat_t _compute_arc()
     // Compute end radius from the center of circle (offsets) to target endpoint
     float end_0 = arc.gm.target[arc.plane_axis_0] - arc.position[arc.plane_axis_0] - arc.offset[arc.plane_axis_0];
     float end_1 = arc.gm.target[arc.plane_axis_1] - arc.position[arc.plane_axis_1] - arc.offset[arc.plane_axis_1];
+/*
 //    float r2 = hypotf(end_0, end_1);
     arc.r2 = hypotf(end_0, end_1);
     float radius_error = fabs(arc.r2 - arc.radius);
-/*
     if ((radius_error > MAX_ARC_RADIUS_ERROR) ||
         ((radius_error > MIN_ARC_RADIUS_ERROR) &&
          (radius_error > arc.radius * ARC_RADIUS_TOLERANCE))) {
