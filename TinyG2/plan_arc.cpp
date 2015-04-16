@@ -29,7 +29,8 @@
 arc_t arc;
 
 // Local functions
-static stat_t _compute_arc(void);
+//static stat_t _compute_arc(void);
+static stat_t _compute_arc(const bool radius_f);
 static void _compute_arc_offsets_from_radius(void);
 static void _estimate_arc_time(void);
 static stat_t _test_arc_soft_limits(void);
@@ -168,7 +169,7 @@ stat_t cm_arc_feed(const float target[], const bool target_f[],     // target en
 	cm_set_model_target(target, target_f);
 
     // in radius mode it's an error for start == end
-    if(radius_f) {
+    if (radius_f) {
         if ((fp_EQ(cm.gmx.position[AXIS_X], cm.gm.target[AXIS_X])) &&
             (fp_EQ(cm.gmx.position[AXIS_Y], cm.gm.target[AXIS_Y])) &&
             (fp_EQ(cm.gmx.position[AXIS_Z], cm.gm.target[AXIS_Z]))) {
@@ -189,10 +190,11 @@ stat_t cm_arc_feed(const float target[], const bool target_f[],     // target en
 	arc.rotations = floor(fabs(cm.gn.parameter));   // P must be a positive integer - force it if not
 
 	// determine if this is a full circle arc. Evaluates true if no target is set
-	arc.full_circle = (fp_ZERO(target_f[arc.plane_axis_0]) & fp_ZERO(target_f[arc.plane_axis_1]));
+//	arc.full_circle = (fp_ZERO(target_f[arc.plane_axis_0]) & fp_ZERO(target_f[arc.plane_axis_1]));
+	arc.full_circle = (!target_f[arc.plane_axis_0] & !target_f[arc.plane_axis_1]);
 
 	// compute arc runtime values
-	ritorno(_compute_arc());
+	ritorno(_compute_arc(radius_f));
 
 	// test arc soft limits
 	stat_t status = _test_arc_soft_limits();
@@ -226,16 +228,17 @@ stat_t cm_arc_feed(const float target[], const bool target_f[],     // target en
  *  Parts of this routine were informed by the grbl project.
  */
 
-static stat_t _compute_arc()
+static stat_t _compute_arc(const bool radius_f)
 {
 //    if (arc.gm.linenum >= 846) {     //+++++ DIAGNOSTIC TRAP
 //        printf("BREAK\n");
 //    }
 
     // Compute IJK offsets and starting radius
-    if (fp_NOT_ZERO(arc.radius)) {      // a non-zero radius value indicates a radius arc
+//    if (fp_NOT_ZERO(arc.radius)) {      // a non-zero radius value indicates a radius arc
+    if (radius_f) {                         // indicates a radius arc
         _compute_arc_offsets_from_radius();
-    } else {    // compute start radius
+    } else {                                // compute start radius
         arc.radius = hypotf(-arc.offset[arc.plane_axis_0], -arc.offset[arc.plane_axis_1]);
     }
 

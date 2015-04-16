@@ -38,7 +38,7 @@
 /****** REVISIONS ******/
 
 #ifndef TINYG_FIRMWARE_BUILD
-#define TINYG_FIRMWARE_BUILD   		083.16 // changed cm_arc_feed call and some cleanup
+#define TINYG_FIRMWARE_BUILD   		083.17 // changes to flag handling in plan_arc
 #endif
 
 #define TINYG_FIRMWARE_VERSION		0.98						// firmware major version
