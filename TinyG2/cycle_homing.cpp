@@ -377,12 +377,11 @@ static stat_t _homing_finalize_exit(int8_t axis)			// third part of return to ho
 
 //#define __ALT_AXES
 
-// UNTESTED - DOES NOT WORK AFAIK
-
 static int8_t _get_next_axis(int8_t axis)
 {
 #ifdef __ALT_AXES
 // alternate code:
+// UNTESTED - DOES NOT WORK AFAIK
 	uint8_t axis;
 	for(axis = AXIS_X; axis < HOMING_AXES; axis++) {
 		if (cm.gf.target[axis]) {

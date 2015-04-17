@@ -263,7 +263,7 @@ static stat_t _compute_arc(const bool radius_f)
     //// compute the angular travel ////
     if (!arc.full_circle) {                                  // compute angular travel if not a full circle arc
         arc.angular_travel = atan2(end_0, end_1) - arc.theta;// angular travel = theta_end - theta_start
-        if (arc.gm.motion_mode == MOTION_MODE_CCW_ARC) {      // correct for atan2 output quadrants
+        if (arc.gm.motion_mode == MOTION_MODE_CCW_ARC) {     // correct for atan2 output quadrants
             if (arc.angular_travel >= 0) {
                 arc.angular_travel -= 2*M_PI;
             }
