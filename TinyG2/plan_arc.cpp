@@ -74,8 +74,8 @@ void cm_abort_arc()
 
 stat_t cm_arc_callback()
 {
-	if (arc.run_state == MOVE_OFF) { 
-        return (STAT_NOOP); 
+	if (arc.run_state == MOVE_OFF) {
+        return (STAT_NOOP);
     }
 	if (mp_get_planner_buffers_available() < PLANNER_BUFFER_HEADROOM) {
         return (STAT_EAGAIN);
@@ -118,7 +118,7 @@ stat_t cm_arc_feed(const float target[], const bool target_f[],     // target en
         arc.radius = _to_millimeters(radius);           // set radius to internal format (mm)
         if (arc.radius < MIN_ARC_RADIUS) {              // radius value must be + and > minimum radius
             return (STAT_ARC_RADIUS_OUT_OF_TOLERANCE);
-        }        
+        }
     }
 
 	// Set the arc plane for the current G17/G18/G19 setting and test arc specification
@@ -189,7 +189,6 @@ stat_t cm_arc_feed(const float target[], const bool target_f[],     // target en
 	arc.rotations = floor(fabs(cm.gn.parameter));   // P must be a positive integer - force it if not
 
 	// determine if this is a full circle arc. Evaluates true if no target is set
-//	arc.full_circle = (fp_ZERO(target_f[arc.plane_axis_0]) & fp_ZERO(target_f[arc.plane_axis_1]));
 	arc.full_circle = (!target_f[arc.plane_axis_0] & !target_f[arc.plane_axis_1]);
 
 	// compute arc runtime values
@@ -229,12 +228,7 @@ stat_t cm_arc_feed(const float target[], const bool target_f[],     // target en
 
 static stat_t _compute_arc(const bool radius_f)
 {
-//    if (arc.gm.linenum >= 846) {     //+++++ DIAGNOSTIC TRAP
-//        printf("BREAK\n");
-//    }
-
     // Compute IJK offsets and starting radius
-//    if (fp_NOT_ZERO(arc.radius)) {      // a non-zero radius value indicates a radius arc
     if (radius_f) {                         // indicates a radius arc
         _compute_arc_offsets_from_radius();
     } else {                                // compute start radius
@@ -253,14 +247,15 @@ static stat_t _compute_arc(const bool radius_f)
     float err = fabs(hypotf(end_0, end_1) - arc.radius);   // end radius - start radius
     if ((err > ARC_RADIUS_ERROR_MAX) ||
        ((err > ARC_RADIUS_ERROR_MIN) && (err > arc.radius * ARC_RADIUS_TOLERANCE))) {
+//        printf("Ln:%lu Radius Error: %f\n", arc.gm.linenum, err);
         return (STAT_ARC_SPECIFICATION_ERROR);
     }
+
+    // Compute the angular travel
 
     // Calculate the theta (angle) of the current point (position)
     // arc.theta is starting point for theta (also needed for calculating center point)
     arc.theta = atan2(-arc.offset[arc.plane_axis_0], -arc.offset[arc.plane_axis_1]);
-
-    //// compute the angular travel ////
     if (!arc.full_circle) {                                  // compute angular travel if not a full circle arc
         arc.angular_travel = atan2(end_0, end_1) - arc.theta;// angular travel = theta_end - theta_start
         if (arc.gm.motion_mode == MOTION_MODE_CCW_ARC) {     // correct for atan2 output quadrants
@@ -292,11 +287,8 @@ static stat_t _compute_arc(const bool radius_f)
     arc.linear_travel = arc.gm.target[arc.linear_axis] - arc.position[arc.linear_axis];
     arc.planar_travel = arc.angular_travel * arc.radius;
     arc.length = hypotf(arc.planar_travel, fabs(arc.linear_travel));
-    if (arc.length < MIN_ARC_SEGMENT_LENGTH) {
-        return (STAT_MINIMUM_LENGTH_MOVE);                  // arc is too short to executes
-    }
-    // get an estimate of execution time to inform segment calculation
-    _estimate_arc_time();
+//  if (arc.length < MIN_ARC_SEGMENT_LENGTH) { return (STAT_MINIMUM_LENGTH_MOVE); } // arc is too short to executes
+    _estimate_arc_time();                                   // estimate execution time to inform segment calculation
 
     // Find the minimum number of segments that meets these constraints...
     float segments_for_chordal_accuracy = arc.length / sqrt(4*cm.chordal_tolerance * (2 * arc.radius - cm.chordal_tolerance));
