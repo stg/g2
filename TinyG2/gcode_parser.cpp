@@ -38,8 +38,8 @@ static stat_t _validate_gcode_block(void);
 static stat_t _parse_gcode_block(char *line);   // Parse the block into the GN/GF structs
 static stat_t _execute_gcode_block(void);       // Execute the gcode block
 
-#define SET_MODAL(m,parm,val) ({cm.gn.parm=val; cm.gf.parm=1; gp.modals[m]+=1; break;})
-#define SET_NON_MODAL(parm,val) ({cm.gn.parm=val; cm.gf.parm=1; break;})
+#define SET_MODAL(m,parm,val) ({cm.gn.parm=val; cm.gf.parm=true; gp.modals[m]+=1; break;})
+#define SET_NON_MODAL(parm,val) ({cm.gn.parm=val; cm.gf.parm=true; break;})
 #define EXEC_FUNC(f,v) if((bool)(uint8_t)cm.gf.v != false) { status = f(cm.gn.v);}
 //#define EXEC_FUNC(f,v) if(fp_TRUE(cm.gf.v)) { status = f(cm.gn.v);}
 
@@ -251,16 +251,16 @@ static stat_t _validate_gcode_block()
 
 static stat_t _parse_gcode_block(char *buf)
 {
-	char *pstr = (char *)buf;		// persistent pointer into gcode block for parsing words
-  	char letter;					// parsed letter, eg.g. G or X or Y
-	float value = 0;				// value parsed from letter (e.g. 2 for G2)
-	stat_t status = STAT_OK;
+    char *pstr = (char *)buf;       // persistent pointer into gcode block for parsing words
+    char letter;                    // parsed letter, eg.g. G or X or Y
+    float value = 0;                // value parsed from letter (e.g. 2 for G2)
+    stat_t status = STAT_OK;
 
-	// set initial state for new move
-	memset(&gp, 0, sizeof(gp));						// clear all parser values
-	memset(&cm.gf, 0, sizeof(GCodeInput_t));		// clear all next-state flags
-	memset(&cm.gn, 0, sizeof(GCodeInput_t));		// clear all next-state values
-	cm.gn.motion_mode = cm_get_motion_mode(MODEL);	// get motion mode from previous block
+    // set initial state for new move
+    memset(&gp, 0, sizeof(gp));                     // clear all parser values
+    memset(&cm.gn, 0, sizeof(GCodeInput_t));        // clear all next-state values
+    memset(&cm.gf, 0, sizeof(GCodeFlags_t));        // clear all next-state flags
+    cm.gn.motion_mode = cm_get_motion_mode(MODEL);  // get motion mode from previous block
 
 	// extract commands and parameters
 	while((status = _get_next_gcode_word(&pstr, &letter, &value)) == STAT_OK) {
@@ -489,12 +489,9 @@ static stat_t _execute_gcode_block()
         		case MOTION_MODE_STRAIGHT_TRAVERSE: { status = cm_straight_traverse(cm.gn.target, cm.gf.target); break;}
         		case MOTION_MODE_STRAIGHT_FEED: { status = cm_straight_feed(cm.gn.target, cm.gf.target); break;}
         		case MOTION_MODE_CW_ARC:
-                case MOTION_MODE_CCW_ARC: { status = cm_arc_feed(cm.gn.target,
-                                                                 cm.gf.target,
-                                                                 cm.gn.arc_offset[0],
-                                                                 cm.gn.arc_offset[1],
-                                                                 cm.gn.arc_offset[2],
-                                                                 cm.gn.arc_radius,
+                case MOTION_MODE_CCW_ARC: { status = cm_arc_feed(cm.gn.target,     cm.gf.target,
+                                                                 cm.gn.arc_offset, cm.gf.arc_offset,
+                                                                 cm.gn.arc_radius, cm.gf.arc_radius,
                                                                  cm.gn.motion_mode);
                                                                  break;
                                           }
