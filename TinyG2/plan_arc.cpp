@@ -182,9 +182,15 @@ stat_t cm_arc_feed(const float target[], const bool target_f[],     // target en
 	memcpy(&arc.gm, &cm.gm, sizeof(GCodeState_t));  // copy GCode context to arc singleton - some will be overwritten to run segments
 	copy_vector(arc.position, cm.gmx.position);     // set initial arc position from gcode model
 
-	arc.offset[OFS_I] = _to_millimeters(offset[OFS_I]); // copy offsets with conversion to canonical form (mm)
-	arc.offset[OFS_J] = _to_millimeters(offset[OFS_J]);
-	arc.offset[OFS_K] = _to_millimeters(offset[OFS_K]);
+    arc.offset[OFS_I] = _to_millimeters(offset[OFS_I]); // copy offsets with conversion to canonical form (mm)
+    arc.offset[OFS_J] = _to_millimeters(offset[OFS_J]);
+    arc.offset[OFS_K] = _to_millimeters(offset[OFS_K]);
+
+    if (arc.gm.arc_distance_mode == ABSOLUTE_MODE) {    // adjust offsets if in absolute mode
+         arc.offset[OFS_I] -= cm.gmx.position[AXIS_X];
+         arc.offset[OFS_J] -= cm.gmx.position[AXIS_Y];
+         arc.offset[OFS_K] -= cm.gmx.position[AXIS_Z];
+    }
 
 	arc.rotations = floor(fabs(cm.gn.parameter));   // P must be a positive integer - force it if not
 
@@ -287,10 +293,9 @@ static stat_t _compute_arc(const bool radius_f)
     arc.linear_travel = arc.gm.target[arc.linear_axis] - arc.position[arc.linear_axis];
     arc.planar_travel = arc.angular_travel * arc.radius;
     arc.length = hypotf(arc.planar_travel, fabs(arc.linear_travel));
-//  if (arc.length < MIN_ARC_SEGMENT_LENGTH) { return (STAT_MINIMUM_LENGTH_MOVE); } // arc is too short to executes
     _estimate_arc_time();                                   // estimate execution time to inform segment calculation
 
-    // Find the minimum number of segments that meets these constraints...
+    // Find the minimum number of segments that meet these constraints...
     float segments_for_chordal_accuracy = arc.length / sqrt(4*cm.chordal_tolerance * (2 * arc.radius - cm.chordal_tolerance));
     float segments_for_minimum_distance = arc.length / MIN_ARC_SEGMENT_LENGTH;
     float segments_for_minimum_time = arc.time * (MICROSECONDS_PER_MINUTE / MIN_ARC_SEGMENT_USEC);
