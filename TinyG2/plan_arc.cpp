@@ -103,23 +103,19 @@ stat_t cm_arc_callback()
 
 stat_t cm_arc_feed(const float target[], const bool target_f[],     // target endpoint
                    const float offset[], const bool offset_f[],     // IJK offsets
-                   const float radius, const bool radius_f,         // radius if radius mode                // non-zero radius implies radius mode
+                   const float radius, const bool radius_f,         // radius if radius mode 
+                   const float P_word, const bool P_word_f,         // parameter
                    const uint8_t motion_mode)                       // defined motion mode
 {
-	//****** Set axis plane and trap arc specification errors ******
-
+	// Start setting up the arc and trapping arc specification errors
+    // Some things you might think are errors but are not:
+    //  - offset specified for linear axis (i.e. not one of the plane axes). Ignored
+    //  - P word present in Radius mode. Ignored.
+ 
 	// trap missing feed rate
 	if ((cm.gm.feed_rate_mode != INVERSE_TIME_MODE) && (fp_ZERO(cm.gm.feed_rate))) {
     	return (STAT_GCODE_FEEDRATE_NOT_SPECIFIED);
 	}
-
-    // test radius inputs
-    if (radius_f) {
-        arc.radius = _to_millimeters(radius);           // set radius to internal format (mm)
-        if (arc.radius < MIN_ARC_RADIUS) {              // radius value must be + and > minimum radius
-            return (STAT_ARC_RADIUS_OUT_OF_TOLERANCE);
-        }
-    }
 
 	// Set the arc plane for the current G17/G18/G19 setting and test arc specification
 	// Plane axis 0 and 1 are the arc plane, the linear axis is normal to the arc plane.
@@ -127,43 +123,53 @@ stat_t cm_arc_feed(const float target[], const bool target_f[],     // target en
     	arc.plane_axis_0 = AXIS_X;
     	arc.plane_axis_1 = AXIS_Y;
     	arc.linear_axis  = AXIS_Z;
-        if (radius_f) {
-            if (!(target_f[AXIS_X] || target_f[AXIS_Y])) {      // must have at least one endpoint specified
-        	    return (STAT_ARC_AXIS_MISSING_FOR_SELECTED_PLANE);
-            }
-        } else { // center format arc tests
-            if (offset_f[OFS_K]) { // it's OK to be missing either or both i and j, but error if k is present
-        	    return (STAT_ARC_SPECIFICATION_ERROR);
-            }
-        }
-
     } else if (cm.gm.select_plane == CANON_PLANE_XZ) {	// G18
-    	arc.plane_axis_0 = AXIS_X;
-    	arc.plane_axis_1 = AXIS_Z;
-    	arc.linear_axis  = AXIS_Y;
-        if (radius_f) {
-            if (!(target_f[AXIS_X] || target_f[AXIS_Z]))
-                return (STAT_ARC_AXIS_MISSING_FOR_SELECTED_PLANE);
-        } else {
-            if (offset_f[OFS_J])
-                return (STAT_ARC_SPECIFICATION_ERROR);
-        }
-
+        arc.plane_axis_0 = AXIS_X;
+        arc.plane_axis_1 = AXIS_Z;
+        arc.linear_axis  = AXIS_Y;
     } else if (cm.gm.select_plane == CANON_PLANE_YZ) {	// G19
-    	arc.plane_axis_0 = AXIS_Y;
-    	arc.plane_axis_1 = AXIS_Z;
-    	arc.linear_axis  = AXIS_X;
-        if (radius_f) {
-            if (!(target_f[AXIS_Y] || target_f[AXIS_Z]))
-                return (STAT_ARC_AXIS_MISSING_FOR_SELECTED_PLANE);
+        arc.plane_axis_0 = AXIS_Y;
+        arc.plane_axis_1 = AXIS_Z;
+        arc.linear_axis  = AXIS_X;
+    } else {
+        return(cm_panic(STAT_GCODE_ACTIVE_PLANE_IS_MISSING, "no plane axis"));   // plane axis has impossible value
+    }
+    
+    // test if no endpoints are specified in the selected plane
+    arc.full_circle = false;        // initial condition
+    if (!(target_f[arc.plane_axis_0] || target_f[arc.plane_axis_1])) {
+        if (radius_f) {             // in radius mode arcs missing both endpoints is an error
+            return (STAT_ARC_AXIS_MISSING_FOR_SELECTED_PLANE);
         } else {
-            if (offset_f[OFS_I])
-                return (STAT_ARC_SPECIFICATION_ERROR);
+            arc.full_circle = true; // in center format arc this specifies a full circle
         }
-	}
-
-	//****** Setup the arc ******
-
+    }
+    
+    if (radius_f) {     // radius arc test
+        arc.radius = _to_millimeters(radius);           // set radius to internal format (mm)
+        if (arc.radius < MIN_ARC_RADIUS) {              // radius value must be + and > minimum radius
+            return (STAT_ARC_RADIUS_OUT_OF_TOLERANCE);
+        }
+    } else {            // center format arc test
+        if (cm.gm.arc_distance_mode == ABSOLUTE_MODE) {
+            if (!(offset_f[arc.plane_axis_0] && offset_f[arc.plane_axis_1])) {  // if one or both offsets are missing
+                return (STAT_ARC_AXIS_MISSING_FOR_SELECTED_PLANE);  // both plane offsets req'd for abs distance mode
+            }
+        }
+    }
+    
+    // P word tests and set rotations
+    arc.rotations = 0;              // initial condition
+    if (P_word_f) {
+        if (P_word < 0) {  // If P is present it must be a positive integer
+            return (STAT_P_WORD_IS_NEGATIVE);
+        }
+        if (floor(P_word) - (P_word) > 0) {
+            return (STAT_P_WORD_IS_NOT_AN_INTEGER);
+        }
+        arc.rotations = P_word;
+    }
+    
 	// set values in the Gcode model state & copy it (linenum was already captured)
 	cm_set_model_target(target, target_f);
 
@@ -176,7 +182,7 @@ stat_t cm_arc_feed(const float target[], const bool target_f[],     // target en
         }
     }
 
-    // now get down to the rest of the work setting up the arc for execution
+    // *** now get down to the rest of the work setting up the arc for execution ***
 	cm.gm.motion_mode = motion_mode;
 	cm_set_work_offsets(&cm.gm);                    // capture the fully resolved offsets to gm
 	memcpy(&arc.gm, &cm.gm, sizeof(GCodeState_t));  // copy GCode context to arc singleton - some will be overwritten to run segments
@@ -191,11 +197,6 @@ stat_t cm_arc_feed(const float target[], const bool target_f[],     // target en
          arc.offset[OFS_J] -= cm.gmx.position[AXIS_Y];
          arc.offset[OFS_K] -= cm.gmx.position[AXIS_Z];
     }
-
-	arc.rotations = floor(fabs(cm.gn.parameter));   // P must be a positive integer - force it if not
-
-	// determine if this is a full circle arc. Evaluates true if no target is set
-	arc.full_circle = (!target_f[arc.plane_axis_0] & !target_f[arc.plane_axis_1]);
 
 	// compute arc runtime values
 	ritorno(_compute_arc(radius_f));

@@ -658,6 +658,7 @@ stat_t cm_straight_feed(const float target[], const bool flags[], bool defer_pla
 stat_t cm_arc_feed(const float target[], const bool target_f[],             // target endpoint
                    const float offset[], const bool offset_f[],             // IJK offsets
                    const float radius, const bool radius_f,                 // radius if radius mode                // non-zero radius implies radius mode
+                   const float P_word, const bool P_word_f,                 // parameter
                    const uint8_t motion_mode);                              // defined motion mode
 
 stat_t cm_dwell(const float seconds);                                       // G4, P parameter
