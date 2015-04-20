@@ -226,6 +226,7 @@ uint8_t cm_get_units_mode(const GCodeState_t *gcode_state) { return gcode_state-
 uint8_t cm_get_select_plane(const GCodeState_t *gcode_state) { return gcode_state->select_plane;}
 uint8_t cm_get_path_control(const GCodeState_t *gcode_state) { return gcode_state->path_control;}
 uint8_t cm_get_distance_mode(const GCodeState_t *gcode_state) { return gcode_state->distance_mode;}
+uint8_t cm_get_arc_distance_mode(const GCodeState_t *gcode_state) { return gcode_state->arc_distance_mode;}
 uint8_t cm_get_feed_rate_mode(const GCodeState_t *gcode_state) { return gcode_state->feed_rate_mode;}
 uint8_t cm_get_tool(const GCodeState_t *gcode_state) { return gcode_state->tool;}
 uint8_t	cm_get_block_delete_switch() { return cm.gmx.block_delete_switch;}
@@ -584,6 +585,7 @@ void canonical_machine_reset()
 	cm_select_plane(cm.default_select_plane);
 	cm_set_path_control(cm.default_path_control);
 	cm_set_distance_mode(cm.default_distance_mode);
+	cm_set_arc_distance_mode(INCREMENTAL_MODE);  // always the default
 	cm_set_feed_rate_mode(UNITS_PER_MINUTE_MODE);// always the default
 
     // NOTE: Should unhome axes here
@@ -603,7 +605,6 @@ void canonical_machine_reset()
     cm.esc_boot_timer = SysTickTimer_getValue();
     cm.gmx.block_delete_switch = true;
     cm.gm.motion_mode = MOTION_MODE_CANCEL_MOTION_MODE; // never start in a motion mode
-
     cm.machine_state = MACHINE_READY;
 }
 
@@ -853,12 +854,13 @@ stat_t cm_panic(const stat_t status, const char *msg)
 /**************************************************************************
  * Representation functions that affect the Gcode model only (asynchronous)
  *
- *	cm_select_plane()			- G17,G18,G19 select axis plane
- *	cm_set_units_mode()			- G20, G21
- *	cm_set_distance_mode()		- G90, G91
- *	cm_set_coord_offsets()		- G10 (delayed persistence)
+ *  cm_select_plane()           - G17,G18,G19 select axis plane
+ *  cm_set_units_mode()         - G20, G21
+ *  cm_set_distance_mode()      - G90, G91
+ *  cm_set_arc_distance_mode()  - G90.1, G91.1
+ *  cm_set_coord_offsets()      - G10 (delayed persistence)
  *
- *	These functions assume input validation occurred upstream.
+ *  These functions assume input validation occurred upstream.
  */
 
 stat_t cm_select_plane(const uint8_t plane)
@@ -877,6 +879,12 @@ stat_t cm_set_distance_mode(const uint8_t mode)
 {
 	cm.gm.distance_mode = (cmDistanceMode)mode;		// 0 = absolute mode, 1 = incremental
 	return (STAT_OK);
+}
+
+stat_t cm_set_arc_distance_mode(const uint8_t mode)
+{
+    cm.gm.arc_distance_mode = (cmDistanceMode)mode;	// 0 = absolute mode, 1 = incremental
+    return (STAT_OK);
 }
 
 /*
@@ -1608,6 +1616,7 @@ static void _exec_program_finalize(float *value, bool *flag)
 		cm_set_coord_system(cm.default_coord_system);   // reset to default coordinate system
 		cm_select_plane(cm.default_select_plane);       // reset to default arc plane
 		cm_set_distance_mode(cm.default_distance_mode);
+		cm_set_arc_distance_mode(INCREMENTAL_MODE);     // always the default
 		cm_spindle_off_immediate();                     // M5
 		cm_coolant_off_immediate();                     // M9
 		cm_set_feed_rate_mode(UNITS_PER_MINUTE_MODE);	// G94
@@ -1785,27 +1794,15 @@ static const char msg_g90[] PROGMEM = "G90 - absolute distance mode";
 static const char msg_g91[] PROGMEM = "G91 - incremental distance mode";
 static const char *const msg_dist[] PROGMEM = { msg_g90, msg_g91 };
 
+static const char msg_g901[] PROGMEM = "G90.1 - absolute distance mode";
+static const char msg_g911[] PROGMEM = "G91.1 - incremental distance mode (default mode)";
+static const char *const msg_admo[] PROGMEM = { msg_g901, msg_g911 };
+
 static const char msg_g93[] PROGMEM = "G93 - inverse time mode";
 static const char msg_g94[] PROGMEM = "G94 - units-per-minute mode (i.e. feedrate mode)";
 static const char msg_g95[] PROGMEM = "G95 - units-per-revolution mode";
 static const char *const msg_frmo[] PROGMEM = { msg_g93, msg_g94, msg_g95 };
-/* OMC code
-static const char msg_safe0[] PROGMEM = "Interlock Circuit Closed/ESC nominal";
-static const char msg_safe1[] PROGMEM = "Interlock Circuit Broken/ESC nominal";
-static const char msg_safe2[] PROGMEM = "Interlock Circuit Closed/ESC rebooting";
-static const char msg_safe3[] PROGMEM = "Interlock Circuit Broken/ESC rebooting";
-static const char *const msg_safe[] PROGMEM = { msg_safe0, msg_safe1, msg_safe2, msg_safe3 };
 
-static const char msg_ilck0[] PROGMEM = "Interlock Circuit Closed";
-static const char msg_ilck1[] PROGMEM = "Interlock Circuit Broken";
-static const char *const msg_ilck[] PROGMEM = { msg_ilck0, msg_ilck1 };
-
-static const char msg_estp0[] PROGMEM = "E-Stop Circuit Closed";
-static const char msg_estp1[] PROGMEM = "E-Stop Circuit Closed but unacked";
-static const char msg_estp2[] PROGMEM = "E-Stop Circuit Broken and acked";
-static const char msg_estp3[] PROGMEM = "E-Stop Circuit Broken and unacked";
-static const char *const msg_estp[] PROGMEM = { msg_estp0, msg_estp1, msg_estp2, msg_estp3 };
-*/
 #else
 
 #define msg_units NULL
@@ -1821,6 +1818,7 @@ static const char *const msg_estp[] PROGMEM = { msg_estp0, msg_estp1, msg_estp2,
 #define msg_plan NULL
 #define msg_path NULL
 #define msg_dist NULL
+#define msg_admo NULL
 #define msg_frmo NULL
 #define msg_am NULL
 
@@ -1876,10 +1874,11 @@ static int8_t _get_axis_type(const index_t index)
  * cm_get_unit() - get units mode as integer and display string
  * cm_get_coor() - get goodinate system
  * cm_get_momo() - get runtime motion mode
- * cm_get_plan() - get model gcode plane select
- * cm_get_path() - get model gcode path control mode
- * cm_get_dist() - get model gcode distance mode
- * cm_get_frmo() - get model gcode feed rate mode
+ * cm_get_plan() - get model plane select
+ * cm_get_path() - get model path control mode
+ * cm_get_dist() - get model distance mode
+ * cm_get_admo() - get model arc distance mode
+ * cm_get_frmo() - get model feed rate mode
  * cm_get_tool() - get tool
  * cm_get_feed() - get feed rate
  * cm_get_mline()- get model line number for status reports
@@ -1916,10 +1915,8 @@ stat_t cm_get_momo(nvObj_t *nv) { return(_get_msg_helper(nv, msg_momo, cm_get_mo
 stat_t cm_get_plan(nvObj_t *nv) { return(_get_msg_helper(nv, msg_plan, cm_get_select_plane(ACTIVE_MODEL)));}
 stat_t cm_get_path(nvObj_t *nv) { return(_get_msg_helper(nv, msg_path, cm_get_path_control(ACTIVE_MODEL)));}
 stat_t cm_get_dist(nvObj_t *nv) { return(_get_msg_helper(nv, msg_dist, cm_get_distance_mode(ACTIVE_MODEL)));}
+stat_t cm_get_admo(nvObj_t *nv) { return(_get_msg_helper(nv, msg_admo, cm_get_arc_distance_mode(ACTIVE_MODEL)));}
 stat_t cm_get_frmo(nvObj_t *nv) { return(_get_msg_helper(nv, msg_frmo, cm_get_feed_rate_mode(ACTIVE_MODEL)));}
-
-//stat_t cm_get_ilck(nvObj_t *nv) { return(_get_msg_helper(nv, msg_safe, cm.interlock_state)); }
-//stat_t cm_get_estp(nvObj_t *nv) { return(_get_msg_helper(nv, msg_estp, cm.estop_state)); }
 
 stat_t cm_get_toolv(nvObj_t *nv)
 {
@@ -2084,7 +2081,7 @@ stat_t cm_run_qf(nvObj_t *nv)
 
 stat_t cm_run_home(nvObj_t *nv)
 {
-	if (fp_TRUE(nv->value)) { 
+	if (fp_TRUE(nv->value)) {
         cm_homing_cycle_start();
     }
 	return (STAT_OK);
@@ -2181,10 +2178,11 @@ const char fmt_momo[] PROGMEM = "Motion mode:         %s\n";
 const char fmt_plan[] PROGMEM = "Plane:               %s\n";
 const char fmt_path[] PROGMEM = "Path Mode:           %s\n";
 const char fmt_dist[] PROGMEM = "Distance mode:       %s\n";
+const char fmt_admo[] PROGMEM = "Arc Distance mode:   %s\n";
 const char fmt_frmo[] PROGMEM = "Feed rate mode:      %s\n";
 const char fmt_tool[] PROGMEM = "Tool number          %d\n";
-const char fmt_ilck[] PROGMEM = "Safety Interlock:    %s\n";
-const char fmt_estp[] PROGMEM = "Emergency Stop:      %s\n";
+//const char fmt_ilck[] PROGMEM = "Safety Interlock:    %s\n";
+//const char fmt_estp[] PROGMEM = "Emergency Stop:      %s\n";
 
 const char fmt_pos[] PROGMEM = "%c position:%15.3f%s\n";
 const char fmt_mpo[] PROGMEM = "%c machine posn:%11.3f%s\n";
@@ -2215,6 +2213,7 @@ void cm_print_momo(nvObj_t *nv) { text_print_str(nv, fmt_momo);}
 void cm_print_plan(nvObj_t *nv) { text_print_str(nv, fmt_plan);}
 void cm_print_path(nvObj_t *nv) { text_print_str(nv, fmt_path);}
 void cm_print_dist(nvObj_t *nv) { text_print_str(nv, fmt_dist);}
+void cm_print_admo(nvObj_t *nv) { text_print_str(nv, fmt_admo);}
 void cm_print_frmo(nvObj_t *nv) { text_print_str(nv, fmt_frmo);}
 
 //void cm_print_ilck(nvObj_t *nv) { text_print_str(nv, fmt_ilck);}

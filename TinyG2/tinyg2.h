@@ -38,7 +38,7 @@
 /****** REVISIONS ******/
 
 #ifndef TINYG_FIRMWARE_BUILD
-#define TINYG_FIRMWARE_BUILD   		083.18 // changes to flag handling elsewhere
+#define TINYG_FIRMWARE_BUILD   		083.20 // added arc distance mode (G90.1, G91.1)
 #endif
 
 #define TINYG_FIRMWARE_VERSION		0.98						// firmware major version
