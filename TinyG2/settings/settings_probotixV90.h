@@ -101,7 +101,7 @@
 #define M1_MICROSTEPS		    	8						// 1mi		1,2,4,8
 #define M1_POLARITY			    	0						// 1po		0=normal, 1=reversed
 #define M1_POWER_MODE		    	MOTOR_POWER_MODE		// 1pm		standard
-#define M1_POWER_LEVEL		    	0.625		            // 1pl
+#define M1_POWER_LEVEL		    	0.75		            // 1pl
 
 #define M2_MOTOR_MAP	 	    	AXIS_Y
 #define M2_STEP_ANGLE		    	1.8
