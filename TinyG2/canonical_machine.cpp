@@ -481,7 +481,6 @@ void cm_set_model_target(const float target[], const bool flag[])
 
 	// process XYZABC for lower modes
 	for (axis=AXIS_X; axis<=AXIS_Z; axis++) {
-//		if ((fp_FALSE(flag[axis])) || (cm.a[axis].axis_mode == AXIS_DISABLED)) {
 		if (!flag[axis] || cm.a[axis].axis_mode == AXIS_DISABLED) {
 			continue;		// skip axis if not flagged for update or its disabled
 		} else if ((cm.a[axis].axis_mode == AXIS_STANDARD) || (cm.a[axis].axis_mode == AXIS_INHIBITED)) {
@@ -494,7 +493,6 @@ void cm_set_model_target(const float target[], const bool flag[])
 	}
 	// FYI: The ABC loop below relies on the XYZ loop having been run first
 	for (axis=AXIS_A; axis<=AXIS_C; axis++) {
-//		if ((fp_FALSE(flag[axis])) || (cm.a[axis].axis_mode == AXIS_DISABLED)) {
 		if (!flag[axis] || cm.a[axis].axis_mode == AXIS_DISABLED) {
 			continue;		// skip axis if not flagged for update or its disabled
 		} else {

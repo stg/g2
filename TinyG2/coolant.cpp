@@ -151,7 +151,6 @@ stat_t cm_mist_coolant_control(uint8_t mist_enable)
 
 static void _exec_coolant_control(float *value, bool *flags)
 {
-//    if (fp_TRUE(flags[COOLANT_FLOOD])) {
     if (flags[COOLANT_FLOOD]) {
         coolant.flood_enable = (cmCoolantEnable)value[COOLANT_FLOOD];
         if (!((coolant.flood_enable & 0x01) ^ coolant.flood_polarity)) {    // inverted XOR
@@ -160,7 +159,6 @@ static void _exec_coolant_control(float *value, bool *flags)
             _set_flood_enable_bit_lo();
         }
     }
-//    if (fp_TRUE(flags[COOLANT_MIST])) {
     if (flags[COOLANT_MIST]) {
         coolant.mist_enable = (cmCoolantEnable)value[COOLANT_MIST];
         if (!((coolant.mist_enable & 0x01) ^ coolant.mist_polarity)) {
