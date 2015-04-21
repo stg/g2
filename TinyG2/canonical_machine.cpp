@@ -1727,8 +1727,8 @@ static const char msg_macs3[] PROGMEM = "Stop";
 static const char msg_macs4[] PROGMEM = "End";
 static const char msg_macs5[] PROGMEM = "Cycle";
 static const char msg_macs6[] PROGMEM = "Interlock";
-static const char msg_macs7[] PROGMEM = "Shutdown";
-static const char msg_macs8[] PROGMEM = "Panic";
+static const char msg_macs7[] PROGMEM = "SHUTDOWN";
+static const char msg_macs8[] PROGMEM = "PANIC";
 static const char *const msg_macs[] PROGMEM = { msg_macs0, msg_macs1, msg_macs2, msg_macs3,
 												msg_macs4, msg_macs5, msg_macs6, msg_macs7,
                                                 msg_macs8 };
