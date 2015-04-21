@@ -25,11 +25,7 @@
 #include "coolant.h"
 #include "util.h"
 #include "xio.h"			// for char definitions
-/*
-struct gcodeParserSingleton {	 	        // struct to manage globals
-	uint8_t modals[MODAL_GROUP_COUNT];      // collects modal groups in a block
-}; struct gcodeParserSingleton gp;
-*/
+
 // local helper functions and macros
 static void _normalize_gcode_block(char *str, char **com, char **msg, uint8_t *block_delete_flag);
 static stat_t _get_next_gcode_word(char **pstr, char *letter, float *value);
@@ -38,11 +34,11 @@ static stat_t _validate_gcode_block(void);
 static stat_t _parse_gcode_block(char *line);   // Parse the block into the GN/GF structs
 static stat_t _execute_gcode_block(void);       // Execute the gcode block
 
-#define SET_MODAL(m,parm,val) ({cm.gn.parm=val; cm.gf.parm=true; \
-                                cm.gn.modals[m]+=1; cm.gf.modals[m]=true; break;})
+//#define SET_MODAL(m,parm,val) ({cm.gn.parm=val; cm.gf.parm=true; cm.gn.modals[m]+=1; cm.gf.modals[m]=true; break;})
+#define SET_MODAL(m,parm,val) ({cm.gn.parm=val; cm.gf.parm=true; cm.gf.modals[m]=true; break;})
 #define SET_NON_MODAL(parm,val) ({cm.gn.parm=val; cm.gf.parm=true; break;})
-#define EXEC_FUNC(f,v) if((bool)(uint8_t)cm.gf.v != false) { status = f(cm.gn.v);}
-//#define EXEC_FUNC(f,v) if(fp_TRUE(cm.gf.v)) { status = f(cm.gn.v);}
+#define EXEC_FUNC(f,v) if(cm.gf.v) { status=f(cm.gn.v);}
+//#define EXEC_FUNC(f,v) if((bool)(uint8_t)cm.gf.v != false) { status = f(cm.gn.v);}
 
 /*
  * gcode_parser() - parse a block (line) of gcode

@@ -109,17 +109,26 @@ stat_t cm_arc_feed(const float target[], const bool target_f[],     // target en
                    const uint8_t motion_mode)                       // defined motion mode
 {
 	// Start setting up the arc and trapping arc specification errors
+
+    // Trap some precursor cases. Since motion mode (MODAL_GROUP_G1) persists from the
+    // previous move it's possible for non-modal commands such as F or P to arrive here
+    // when no motion has actually been specified. It's also possible to run an arc as
+    // simple as "I25" if CW or CCW motion mode was already set by a previous block.
+    // Here are 2 cases to handle if CW or CCW motion mode was set by a previous block:
+    //
+    // Case 1: F, P or other non modal is specified but no movement is specified (no offsets)
+    //  This is OK: return STAT_OK
+    //
+    // Case 2: Movement is specified w/o a new G2 or G3 word in the (new) block
+    //  This is OK: continue the move
+    if ((!modal_g1_f) && (!(offset_f[AXIS_X] | offset_f[AXIS_Y] | offset_f[AXIS_Z]))) { // no offsets are present
+        return (STAT_OK);
+    }
+
     // Some things you might think are errors but are not:
     //  - offset specified for linear axis (i.e. not one of the plane axes). Ignored
     //  - P word present in Radius mode. Ignored
     //  - rotary axes are present. Ignored
-
-    // Trap null moves. Since motion mode (MODAL_GROUP_G1) persists from the previous 
-    // move it's possible for non-modal commands such as F or P to arrive here when 
-    // no motion has actually been specified. Trap this case and return OK.
-    if (!modal_g1_f) {
-        return (STAT_OK);
-    }
 
 	// trap missing feed rate
 	if ((cm.gm.feed_rate_mode != INVERSE_TIME_MODE) && (fp_ZERO(cm.gm.feed_rate))) {
