@@ -25,11 +25,11 @@
 #include "coolant.h"
 #include "util.h"
 #include "xio.h"			// for char definitions
-
+/*
 struct gcodeParserSingleton {	 	        // struct to manage globals
 	uint8_t modals[MODAL_GROUP_COUNT];      // collects modal groups in a block
 }; struct gcodeParserSingleton gp;
-
+*/
 // local helper functions and macros
 static void _normalize_gcode_block(char *str, char **com, char **msg, uint8_t *block_delete_flag);
 static stat_t _get_next_gcode_word(char **pstr, char *letter, float *value);
@@ -38,7 +38,8 @@ static stat_t _validate_gcode_block(void);
 static stat_t _parse_gcode_block(char *line);   // Parse the block into the GN/GF structs
 static stat_t _execute_gcode_block(void);       // Execute the gcode block
 
-#define SET_MODAL(m,parm,val) ({cm.gn.parm=val; cm.gf.parm=true; gp.modals[m]+=1; break;})
+#define SET_MODAL(m,parm,val) ({cm.gn.parm=val; cm.gf.parm=true; \
+                                cm.gn.modals[m]+=1; cm.gf.modals[m]=true; break;})
 #define SET_NON_MODAL(parm,val) ({cm.gn.parm=val; cm.gf.parm=true; break;})
 #define EXEC_FUNC(f,v) if((bool)(uint8_t)cm.gf.v != false) { status = f(cm.gn.v);}
 //#define EXEC_FUNC(f,v) if(fp_TRUE(cm.gf.v)) { status = f(cm.gn.v);}
@@ -226,12 +227,12 @@ static stat_t _validate_gcode_block()
 	//	uses axis words appears on the line, the activity of the group 1 G-code is suspended
 	//	for that line. The axis word-using G-codes from group 0 are G10, G28, G30, and G92"
 
-//	if ((gp.modals[MODAL_GROUP_G0] == true) && (gp.modals[MODAL_GROUP_G1] == true)) {
+//	if ((cm.gn.modals[MODAL_GROUP_G0] == true) && (cm.gn.modals[MODAL_GROUP_G1] == true)) {
 //		return (STAT_MODAL_GROUP_VIOLATION);
 //	}
 
 	// look for commands that require an axis word to be present
-//	if ((gp.modals[MODAL_GROUP_G0] == true) || (gp.modals[MODAL_GROUP_G1] == true)) {
+//	if ((cm.gn.modals[MODAL_GROUP_G0] == true) || (cm.gn.modals[MODAL_GROUP_G1] == true)) {
 //		if (_axis_changed() == false)
 //		return (STAT_GCODE_AXIS_IS_MISSING);
 //	}
@@ -257,7 +258,7 @@ static stat_t _parse_gcode_block(char *buf)
     stat_t status = STAT_OK;
 
     // set initial state for new move
-    memset(&gp, 0, sizeof(gp));                     // clear all parser values
+//    memset(&gp, 0, sizeof(gp));                     // clear all parser values
     memset(&cm.gn, 0, sizeof(GCodeInput_t));        // clear all next-state values
     memset(&cm.gf, 0, sizeof(GCodeFlags_t));        // clear all next-state flags
     cm.gn.motion_mode = cm_get_motion_mode(MODEL);  // get motion mode from previous block
@@ -509,6 +510,7 @@ static stat_t _execute_gcode_block()
                                                                  cm.gn.arc_offset, cm.gf.arc_offset,
                                                                  cm.gn.arc_radius, cm.gf.arc_radius,
                                                                  cm.gn.parameter,  cm.gf.parameter,
+                                                                 cm.gf.modals[MODAL_GROUP_G1],
                                                                  cm.gn.motion_mode);
                                                                  break;
                                           }

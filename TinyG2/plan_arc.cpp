@@ -105,6 +105,7 @@ stat_t cm_arc_feed(const float target[], const bool target_f[],     // target en
                    const float offset[], const bool offset_f[],     // IJK offsets
                    const float radius, const bool radius_f,         // radius if radius mode
                    const float P_word, const bool P_word_f,         // parameter
+                   const bool modal_g1_f,                           // modal group flag for motion group
                    const uint8_t motion_mode)                       // defined motion mode
 {
 	// Start setting up the arc and trapping arc specification errors
@@ -113,12 +114,11 @@ stat_t cm_arc_feed(const float target[], const bool target_f[],     // target en
     //  - P word present in Radius mode. Ignored
     //  - rotary axes are present. Ignored
 
-    // Trap null moves. The following null moves should be rejected:
-    //  - lone F word (NB: it was already set by the Gcode parser)
-    //  - lone P word (NB: was also already set, not that it matters)
-
-    if (!(target_f[AXIS_X] | target_f[AXIS_Y] | target_f[AXIS_Z])) {
-        return (STAT_ARC_AXIS_MISSING_FOR_SELECTED_PLANE);
+    // Trap null moves. Since motion mode (MODAL_GROUP_G1) persists from the previous 
+    // move it's possible for non-modal commands such as F or P to arrive here when 
+    // no motion has actually been specified. Trap this case and return OK.
+    if (!modal_g1_f) {
+        return (STAT_OK);
     }
 
 	// trap missing feed rate

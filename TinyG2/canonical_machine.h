@@ -370,9 +370,9 @@ typedef struct GCodeInput {				// Gcode model inputs - meaning depends on contex
     uint8_t next_action;				// handles G modal group 1 moves & non-modals
     uint8_t motion_mode;				// Group1: G0, G1, G2, G3, G38.2, G80, G81,
 										// G82, G83 G84, G85, G86, G87, G88, G89
+	uint8_t modals[MODAL_GROUP_COUNT];  // collects modal groups in a block                                        
     uint8_t program_flow;				// used only by the gcode_parser
     uint32_t linenum;					// N word
-
     float target[AXES]; 				// XYZABC where the move should go
 
     float feed_rate; 					// F - normalized to millimeters/minute
@@ -416,6 +416,7 @@ typedef struct GCodeInput {				// Gcode model inputs - meaning depends on contex
 typedef struct GCodeFlags {             // Gcode model input flags
     bool next_action;
     bool motion_mode;
+	bool modals[MODAL_GROUP_COUNT];
     bool program_flow;
     bool linenum;
     bool target[AXES];
@@ -655,13 +656,14 @@ stat_t cm_set_path_control(const uint8_t mode);                             // G
 
 // Machining Functions (4.3.6)
 stat_t cm_straight_feed(const float target[], const bool flags[], bool defer_planning = false); // G1
-stat_t cm_arc_feed(const float target[], const bool target_f[],             // target endpoint
+stat_t cm_dwell(const float seconds);                                       // G4, P parameter
+
+stat_t cm_arc_feed(const float target[], const bool target_f[],             // G2/G3 - target endpoint
                    const float offset[], const bool offset_f[],             // IJK offsets
                    const float radius, const bool radius_f,                 // radius if radius mode                // non-zero radius implies radius mode
                    const float P_word, const bool P_word_f,                 // parameter
+                   const bool modal_g1_f,                                   // modal group flag for motion group
                    const uint8_t motion_mode);                              // defined motion mode
-
-stat_t cm_dwell(const float seconds);                                       // G4, P parameter
 
 // Spindle Functions (4.3.7)
 // see spindle.h for spindle functions - which would go right here
