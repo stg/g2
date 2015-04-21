@@ -368,9 +368,8 @@ typedef struct GCodeStateExtended {		// Gcode dynamic state extensions - used by
 
 typedef struct GCodeInput {				// Gcode model inputs - meaning depends on context
     uint8_t next_action;				// handles G modal group 1 moves & non-modals
-    uint8_t motion_mode;				// Group1: G0, G1, G2, G3, G38.2, G80, G81,
-										// G82, G83 G84, G85, G86, G87, G88, G89
-	uint8_t modals[MODAL_GROUP_COUNT];  // collects modal groups in a block                                        
+    uint8_t motion_mode;				// Group1: G0, G1, G2, G3, G38.2, G80, G81, G82
+										//         G83 G84, G85, G86, G87, G88, G89
     uint8_t program_flow;				// used only by the gcode_parser
     uint32_t linenum;					// N word
     float target[AXES]; 				// XYZABC where the move should go
