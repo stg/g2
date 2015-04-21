@@ -103,15 +103,24 @@ stat_t cm_arc_callback()
 
 stat_t cm_arc_feed(const float target[], const bool target_f[],     // target endpoint
                    const float offset[], const bool offset_f[],     // IJK offsets
-                   const float radius, const bool radius_f,         // radius if radius mode 
+                   const float radius, const bool radius_f,         // radius if radius mode
                    const float P_word, const bool P_word_f,         // parameter
                    const uint8_t motion_mode)                       // defined motion mode
 {
 	// Start setting up the arc and trapping arc specification errors
     // Some things you might think are errors but are not:
     //  - offset specified for linear axis (i.e. not one of the plane axes). Ignored
-    //  - P word present in Radius mode. Ignored.
- 
+    //  - P word present in Radius mode. Ignored
+    //  - rotary axes are present. Ignored
+
+    // Trap null moves. The following null moves should be rejected:
+    //  - lone F word (NB: it was already set by the Gcode parser)
+    //  - lone P word (NB: was also already set, not that it matters)
+
+    if (!(target_f[AXIS_X] | target_f[AXIS_Y] | target_f[AXIS_Z])) {
+        return (STAT_ARC_AXIS_MISSING_FOR_SELECTED_PLANE);
+    }
+
 	// trap missing feed rate
 	if ((cm.gm.feed_rate_mode != INVERSE_TIME_MODE) && (fp_ZERO(cm.gm.feed_rate))) {
     	return (STAT_GCODE_FEEDRATE_NOT_SPECIFIED);
@@ -134,7 +143,7 @@ stat_t cm_arc_feed(const float target[], const bool target_f[],     // target en
     } else {
         return(cm_panic(STAT_GCODE_ACTIVE_PLANE_IS_MISSING, "no plane axis"));   // plane axis has impossible value
     }
-    
+
     // test if no endpoints are specified in the selected plane
     arc.full_circle = false;        // initial condition
     if (!(target_f[arc.plane_axis_0] || target_f[arc.plane_axis_1])) {
@@ -144,21 +153,24 @@ stat_t cm_arc_feed(const float target[], const bool target_f[],     // target en
             arc.full_circle = true; // in center format arc this specifies a full circle
         }
     }
-    
-    if (radius_f) {     // radius arc test
+
+    // test radius arcs for radius tolerance
+    if (radius_f) {
         arc.radius = _to_millimeters(radius);           // set radius to internal format (mm)
         if (arc.radius < MIN_ARC_RADIUS) {              // radius value must be + and > minimum radius
             return (STAT_ARC_RADIUS_OUT_OF_TOLERANCE);
         }
-    } else {            // center format arc test
+
+    // test that absolute distance mode center format arcs have both offsets specified
+    } else {
         if (cm.gm.arc_distance_mode == ABSOLUTE_MODE) {
             if (!(offset_f[arc.plane_axis_0] && offset_f[arc.plane_axis_1])) {  // if one or both offsets are missing
-                return (STAT_ARC_AXIS_MISSING_FOR_SELECTED_PLANE);  // both plane offsets req'd for abs distance mode
+                return (STAT_ARC_AXIS_MISSING_FOR_SELECTED_PLANE);
             }
         }
     }
-    
-    // P word tests and set rotations
+
+    // Set arc rotations using P word
     arc.rotations = 0;              // initial condition
     if (P_word_f) {
         if (P_word < 0) {  // If P is present it must be a positive integer
@@ -168,8 +180,12 @@ stat_t cm_arc_feed(const float target[], const bool target_f[],     // target en
             return (STAT_P_WORD_IS_NOT_AN_INTEGER);
         }
         arc.rotations = P_word;
+    } else {
+        if (arc.full_circle) {      // arc rotations default to 1 for full circles
+            arc.rotations = 1;
+        }
     }
-    
+
 	// set values in the Gcode model state & copy it (linenum was already captured)
 	cm_set_model_target(target, target_f);
 
@@ -254,7 +270,6 @@ static stat_t _compute_arc(const bool radius_f)
     float err = fabs(hypotf(end_0, end_1) - arc.radius);   // end radius - start radius
     if ((err > ARC_RADIUS_ERROR_MAX) ||
        ((err > ARC_RADIUS_ERROR_MIN) && (err > arc.radius * ARC_RADIUS_TOLERANCE))) {
-//        printf("Ln:%lu Radius Error: %f\n", arc.gm.linenum, err);
         return (STAT_ARC_SPECIFICATION_ERROR);
     }
 
@@ -263,6 +278,8 @@ static stat_t _compute_arc(const bool radius_f)
     // Calculate the theta (angle) of the current point (position)
     // arc.theta is starting point for theta (also needed for calculating center point)
     arc.theta = atan2(-arc.offset[arc.plane_axis_0], -arc.offset[arc.plane_axis_1]);
+    arc.angular_travel = 0;                                 // angular travel always starts as zero for full circles
+
     if (!arc.full_circle) {                                  // compute angular travel if not a full circle arc
         arc.angular_travel = atan2(end_0, end_1) - arc.theta;// angular travel = theta_end - theta_start
         if (arc.gm.motion_mode == MOTION_MODE_CCW_ARC) {     // correct for atan2 output quadrants
@@ -273,11 +290,6 @@ static stat_t _compute_arc(const bool radius_f)
             if (arc.angular_travel <= 0) {
                 arc.angular_travel += 2*M_PI;
             }
-        }
-    } else {                                                // ... it's a full circle
-        arc.angular_travel = 0;                             // angular travel always starts as zero for full circles
-        if (fp_ZERO(arc.rotations)) {
-            arc.rotations = 1.0;                            // handle the valid case of a full circle arc w/P=0
         }
     }
     if (arc.gm.motion_mode == MOTION_MODE_CW_ARC) {         // add in travel for rotations
