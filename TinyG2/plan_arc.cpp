@@ -116,12 +116,14 @@ stat_t cm_arc_feed(const float target[], const bool target_f[],     // target en
     // simple as "I25" if CW or CCW motion mode was already set by a previous block.
     // Here are 2 cases to handle if CW or CCW motion mode was set by a previous block:
     //
-    // Case 1: F, P or other non modal is specified but no movement is specified (no offsets)
+    // Case 1: F, P or other non modal is specified but no movement is specified (no offsets or radius)
     //  This is OK: return STAT_OK
     //
     // Case 2: Movement is specified w/o a new G2 or G3 word in the (new) block
     //  This is OK: continue the move
-    if ((!modal_g1_f) && (!(offset_f[AXIS_X] | offset_f[AXIS_Y] | offset_f[AXIS_Z]))) { // no offsets are present
+    if ((!modal_g1_f) &&                                                // G2 or G3 not present
+        (!(offset_f[AXIS_X] | offset_f[AXIS_Y] | offset_f[AXIS_Z])) &&  // no offsets are present
+        (!radius_f)) {                                                  // radius not present
         return (STAT_OK);
     }
 
@@ -166,7 +168,7 @@ stat_t cm_arc_feed(const float target[], const bool target_f[],     // target en
     // test radius arcs for radius tolerance
     if (radius_f) {
         arc.radius = _to_millimeters(radius);           // set radius to internal format (mm)
-        if (arc.radius < MIN_ARC_RADIUS) {              // radius value must be + and > minimum radius
+        if (fabs(arc.radius) < MIN_ARC_RADIUS) {        // radius value must be > minimum radius
             return (STAT_ARC_RADIUS_OUT_OF_TOLERANCE);
         }
 
@@ -442,9 +444,10 @@ static void _compute_arc_offsets_from_radius()
 	// of travel" (go figure!), even though it is advised against ever generating
 	// such circles in a single line of g-code. By inverting the sign of
 	// h_x2_div_d the center of the circles is placed on the opposite side of
-	// the line of travel and thus we get the unadvisably long arcs as prescribed.
+	// the line of travel and thus we get the inadvisably long arcs as prescribed.
 	if (arc.radius < 0) {
         h_x2_div_d = -h_x2_div_d;
+        arc.radius *= -1;           // and flip the radius sign while you are at it
     }
 
 	// Complete the operation by calculating the actual center of the arc
