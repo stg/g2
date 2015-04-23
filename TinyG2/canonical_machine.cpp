@@ -1095,6 +1095,13 @@ stat_t cm_resume_origin_offsets()
 stat_t cm_straight_traverse(const float target[], const bool flags[])
 {
 	cm.gm.motion_mode = MOTION_MODE_STRAIGHT_TRAVERSE;
+
+    // it's legal for a G0 to have no axis words but we don't want to process it
+    if (!(flags[AXIS_X] || flags[AXIS_Y] || flags[AXIS_Z] ||
+          flags[AXIS_A] || flags[AXIS_B] || flags[AXIS_C])) {
+          return(STAT_OK);
+    }
+
 	cm_set_model_target(target, flags);
 	ritorno (cm_test_soft_limits(cm.gm.target)); 	// test soft limits; exit if thrown
 	cm_set_work_offsets(&cm.gm);					// capture the fully resolved offsets to the state
@@ -1216,6 +1223,13 @@ stat_t cm_straight_feed(const float target[], const bool flags[], bool defer_pla
 		return (STAT_GCODE_FEEDRATE_NOT_SPECIFIED);
 	}
 	cm.gm.motion_mode = MOTION_MODE_STRAIGHT_FEED;
+
+    // it's legal for a G1 to have no axis words but we don't want to process it
+    if (!(flags[AXIS_X] || flags[AXIS_Y] || flags[AXIS_Z] ||
+          flags[AXIS_A] || flags[AXIS_B] || flags[AXIS_C])) {
+        return(STAT_OK);
+    }
+
 	cm_set_model_target(target, flags);
 	ritorno (cm_test_soft_limits(cm.gm.target)); 	// test soft limits; exit if thrown
 	cm_set_work_offsets(&cm.gm);					// capture the fully resolved offsets to the state

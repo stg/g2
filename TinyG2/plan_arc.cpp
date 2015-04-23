@@ -129,7 +129,6 @@ stat_t cm_arc_feed(const float target[], const bool target_f[],     // target en
 
     // Some things you might think are errors but are not:
     //  - offset specified for linear axis (i.e. not one of the plane axes). Ignored
-    //  - P word present in Radius mode. Ignored
     //  - rotary axes are present. Ignored
 
 	// trap missing feed rate
@@ -139,7 +138,7 @@ stat_t cm_arc_feed(const float target[], const bool target_f[],     // target en
 
 	// Set the arc plane for the current G17/G18/G19 setting and test arc specification
 	// Plane axis 0 and 1 are the arc plane, the linear axis is normal to the arc plane.
-	if (cm.gm.select_plane == CANON_PLANE_XY) {	// G17 - the vast majority of arcs are in the G17 (XY) plane
+	if (cm.gm.select_plane == CANON_PLANE_XY) {	        // G17 - the vast majority of arcs are in the G17 (XY) plane
     	arc.plane_axis_0 = AXIS_X;
     	arc.plane_axis_1 = AXIS_Y;
     	arc.linear_axis  = AXIS_Z;
@@ -152,7 +151,7 @@ stat_t cm_arc_feed(const float target[], const bool target_f[],     // target en
         arc.plane_axis_1 = AXIS_Z;
         arc.linear_axis  = AXIS_X;
     } else {
-        return(cm_panic(STAT_GCODE_ACTIVE_PLANE_IS_MISSING, "no plane axis"));   // plane axis has impossible value
+        return(cm_panic(STAT_GCODE_ACTIVE_PLANE_IS_MISSING, "no plane axis")); // plane axis has impossible value
     }
 
     // test if no endpoints are specified in the selected plane
@@ -172,11 +171,11 @@ stat_t cm_arc_feed(const float target[], const bool target_f[],     // target en
             return (STAT_ARC_RADIUS_OUT_OF_TOLERANCE);
         }
 
-    // test that absolute distance mode center format arcs have both offsets specified
+    // test that center format absolute distance mode arcs have both offsets specified
     } else {
         if (cm.gm.arc_distance_mode == ABSOLUTE_MODE) {
             if (!(offset_f[arc.plane_axis_0] && offset_f[arc.plane_axis_1])) {  // if one or both offsets are missing
-                return (STAT_ARC_AXIS_MISSING_FOR_SELECTED_PLANE);
+                return (STAT_ARC_OFFSETS_MISSING_FOR_SELECTED_PLANE);
             }
         }
     }
@@ -281,7 +280,7 @@ static stat_t _compute_arc(const bool radius_f)
     float err = fabs(hypotf(end_0, end_1) - arc.radius);   // end radius - start radius
     if ((err > ARC_RADIUS_ERROR_MAX) ||
        ((err > ARC_RADIUS_ERROR_MIN) && (err > arc.radius * ARC_RADIUS_TOLERANCE))) {
-        return (STAT_ARC_SPECIFICATION_ERROR);
+        return (STAT_ARC_HAS_IMPOSSIBLE_CENTER_POINT);
     }
 
     // Compute the angular travel
