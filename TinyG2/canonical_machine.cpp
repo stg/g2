@@ -903,7 +903,6 @@ stat_t cm_set_coord_offsets(const uint8_t coord_system,
 	if ((coord_system < G54) || (coord_system > COORD_SYSTEM_MAX)) {	// you can't set G53
 		return (STAT_P_WORD_IS_INVALID);
 	}
-//    if (fp_FALSE(cm.gf.L_word)) {
     if (!cm.gf.L_word) {
 		return (STAT_L_WORD_IS_MISSING);
     }
@@ -913,7 +912,6 @@ stat_t cm_set_coord_offsets(const uint8_t coord_system,
     cm.gmx.L_word = L_word;
 
 	for (uint8_t axis = AXIS_X; axis < AXES; axis++) {
-//		if (fp_TRUE(flag[axis])) {
 		if (flag[axis]) {
             if (L_word == 2) {
     			cm.offset[coord_system][axis] = _to_millimeters(offset[axis]);
